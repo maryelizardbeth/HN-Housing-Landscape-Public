@@ -42,6 +42,32 @@ body {
   box-shadow: 0 12px 40px rgba(0,0,0,.35); padding: 32px 32px 20px;
   border-top: 8px solid var(--raleigh-green);
 }
+/* Per-section "About" boxes. These replaced the multi-step welcome pop-up, so the
+   guidance stays reachable next to the content it describes. Built on <details>
+   so collapsing needs no JS and keyboard/screen-reader behaviour comes free. */
+.info-wrap { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+.info-box {
+  background: var(--green-tint-alt);
+  border: 1px solid var(--green-tint); border-left: 4px solid var(--raleigh-green);
+  border-radius: 6px; padding: 0 16px; margin: 14px 0 6px;
+}
+.info-box > summary {
+  cursor: pointer; list-style: none; padding: 12px 0;
+  font-size: 1rem; font-weight: 700; color: var(--raleigh-green);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.info-box > summary::-webkit-details-marker { display: none; }
+.info-box > summary::after { content: "Show"; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #666; }
+.info-box[open] > summary::after { content: "Hide"; }
+.info-box > summary:hover { text-decoration: underline; }
+.info-box-body { padding: 0 0 14px; font-size: .9rem; line-height: 1.55; }
+.info-box-body p { margin: 0 0 10px; }
+.info-box-body p:last-child { margin-bottom: 0; }
+.info-box-body ul { margin: 0 0 10px; padding-left: 20px; }
+.info-box-body li { margin-bottom: 3px; }
+.info-subhead { font-weight: 700; color: var(--raleigh-green); margin-bottom: 4px !important; }
+.info-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 24px; }
+
 /* 2020 Bond section: one status filter governs the project-level widgets. Cards
    whose source has no complete/pipeline dimension are badged so it is obvious
    they are not responding to the filter rather than appearing broken. */
@@ -96,25 +122,17 @@ body {
 .welcome-panel ul { margin: 0 0 12px; padding-left: 22px; }
 .welcome-panel li { margin-bottom: 4px; font-size: .92rem; line-height: 1.45; }
 .welcome-subhead { font-weight: 700; color: var(--raleigh-green); margin: 16px 0 6px !important; }
-.welcome-eyebrow {
-  font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
-  color: var(--teal); margin: 0 0 4px !important;
-}
 .welcome-agree-row {
   display: flex; align-items: center; gap: 10px; font-size: .9rem; font-weight: 600;
   color: var(--raleigh-green); background: var(--green-tint-alt); border: 1px solid var(--green-tint);
   border-radius: 4px; padding: 10px 12px; margin-top: 8px; cursor: pointer;
 }
 .welcome-agree-row input { width: 16px; height: 16px; flex: 0 0 auto; cursor: pointer; }
+/* Single-panel dialog now, so the footer just right-aligns the one button. */
 .welcome-footer {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
   border-top: 1px solid var(--light-fill); margin-top: 20px; padding-top: 16px;
 }
-.welcome-dots { display: flex; gap: 7px; }
-.welcome-dots span {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--border); display: inline-block;
-}
-.welcome-dots span.active { background: var(--raleigh-green); }
 .welcome-buttons { display: flex; gap: 8px; }
 .welcome-buttons button:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -184,9 +202,19 @@ arcgis-map { position: absolute; inset: 0; }
   border: 1px solid var(--border); border-radius: 4px; background: var(--white); color: var(--body-text);
 }
 .checks label { display: flex; align-items: center; gap: 8px; font-size: .85rem; margin-bottom: 6px; cursor: pointer; }
-/* any/all combine mode sits under the funding-source checkboxes it governs */
-.fund-mode { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-.fund-mode label { font-size: .8rem; margin-bottom: 4px; }
+/* Any/All segmented control, on the label row of the filter it governs so its
+   scope is unambiguous. Paired with the field label via aria-labelledby. */
+.field-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.field-head label { margin-bottom: 0; }
+.seg-caption { font-size: .72rem; color: #666; text-transform: uppercase; letter-spacing: .03em; margin-left: auto; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.seg-btn {
+  font: inherit; font-size: .76rem; font-weight: 600; line-height: 1;
+  padding: 5px 10px; border: none; background: var(--white); color: #666; cursor: pointer;
+}
+.seg-btn + .seg-btn { border-left: 1px solid var(--border); }
+.seg-btn:hover { background: var(--green-tint-alt); color: var(--raleigh-green); }
+.seg-btn.is-active { background: var(--raleigh-green); color: var(--white); }
 .btn-row { display: flex; gap: 8px; margin-top: 6px; }
 button.btn {
   font: inherit; font-weight: 600; font-size: .82rem; cursor: pointer;

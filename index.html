@@ -16,63 +16,14 @@
       <div class="welcome-modal" role="dialog" aria-modal="true" aria-labelledby="welcomeHeading">
         <button class="welcome-close" id="welcomeClose" aria-label="Close">&times;</button>
 
-        <div class="welcome-panel" data-step="1">
-          <h2 id="welcomeHeading">City of Raleigh Housing Production Dashboard</h2>
-          <p>Welcome to the City of Raleigh's Housing Production Dashboard. In this dashboard you will find demographic data and housing production data for the City of Raleigh.</p>
-          <p>This dashboard has three components—an interactive map, a section of interactive charts detailing overall production data, and a section of interactive charts specific to the 2020 Housing Bond.</p>
-        </div>
-
-        <div class="welcome-panel" data-step="2">
-          <h2>Housing Landscape Map</h2>
-          <p>What this interactive dashboard map contains:</p>
-          <p class="welcome-subhead">Demographic data:</p>
-          <ul>
-            <li>Median rent</li>
-            <li>Vacancy rate</li>
-            <li>Count of total rental units</li>
-            <li>% Vacant housing units</li>
-            <li>% Owner-occupied housing units</li>
-            <li>% Homeowners cost-burdened / severely cost-burdened</li>
-            <li>% Renters cost-burdened / severely cost-burdened</li>
-          </ul>
-          <p class="welcome-subhead">Housing production data:</p>
-          <ul>
-            <li>On affordable housing construction and preservation.</li>
-            <li>Information on affordable and subsidized housing projects that are not City-funded.</li>
-          </ul>
-          <p class="welcome-subhead">Geographic context:</p>
-          <ul>
-            <li>Transit options</li>
-            <li>Council districts</li>
-            <li>Neighborhood Conservation Overlay Districts</li>
-          </ul>
-          <p>In the map section, you can find information on City-funded projects as well as non-City funded affordable housing, such as affordable housing that received federal funding.</p>
-          <p class="welcome-subhead">Helpful information:</p>
-          <p>For the interactive map, units are counted as "Complete" once they have received a Certificate of Occupancy. Units in the "Pipeline" are units either under construction or in the pre-construction phase.</p>
-        </div>
-
-        <div class="welcome-panel" data-step="3">
-          <p class="welcome-eyebrow">Overall production charts section</p>
-          <h2>Raleigh's Housing Production by the Numbers</h2>
-          <p class="welcome-subhead">About the City of Raleigh's Housing Production Dashboard</p>
-          <p>For this interactive chart section, units are counted as "Complete" at different times.</p>
-          <p>For Housing Development, both Preservation and New Construction, units are considered "Completed" when they have received a Certificate of Occupancy. Until then (i.e., when they are in Pre-Construction or Under Construction), they are considered in the "Pipeline".</p>
-          <p>Home Buyer Assistance projects are considered "Complete" once homeowners have received the assistance funds from the City of Raleigh.</p>
-          <p>Home Repair units are considered "Complete" when all construction work has been finished.</p>
-        </div>
-
-        <div class="welcome-panel" data-step="4">
-          <p class="welcome-eyebrow">2020 Housing Bond section</p>
-          <h2>2020 Housing Bond</h2>
-          <p>This section contains information only regarding housing production and preservation funded by the 2020 Housing Bond.</p>
-          <p>All units in this section are tracked by commitment.</p>
-        </div>
-
-        <div class="welcome-panel" data-step="5">
-          <h2>Disclaimer &amp; Contact</h2>
+        <!-- The click-through guide moved into per-section info boxes on the page
+             itself; this dialog is now only the disclaimer + acknowledgement. -->
+        <div class="welcome-panel active" data-step="1">
+          <h2 id="welcomeHeading">Disclaimer &amp; Contact</h2>
           <p>The information provided in this dashboard is for general informational purposes only. It is updated periodically by City of Raleigh staff, and while every effort is made to ensure its accuracy and completeness, the City makes no warranties or guarantees regarding the data presented here. This dashboard is a prototype intended for internal staff use and is not an official public record.</p>
           <p>Questions, feedback, or corrections about this dashboard can be directed to the City of Raleigh Housing &amp; Neighborhoods Department at <em>housing@raleighnc.gov</em>.</p>
-          <p>By clicking "I Agree" below, you acknowledge that you have read and understand the information presented in this welcome guide.</p>
+          <p>Guidance on what each section contains is available in the <strong>About</strong> boxes at the top of the map, production and 2020 Bond sections.</p>
+          <p>By clicking "I Agree" below, you acknowledge that you have read and understand the information presented here.</p>
           <label class="welcome-agree-row">
             <input type="checkbox" id="welcomeAgreeCheck" />
             I agree to the terms and conditions of use for this dashboard.
@@ -80,11 +31,8 @@
         </div>
 
         <div class="welcome-footer">
-          <div class="welcome-dots" id="welcomeDots"></div>
           <div class="welcome-buttons">
-            <button class="btn secondary" id="welcomeBack">Back</button>
-            <button class="btn" id="welcomeNext">Next</button>
-            <button class="btn" id="welcomeAgree" style="display:none;" disabled>I Agree</button>
+            <button class="btn" id="welcomeAgree" disabled>I Agree</button>
           </div>
         </div>
       </div>
@@ -109,49 +57,22 @@
 
     <script>
       (function () {
+        /* Single-panel disclaimer. The multi-step guide it used to wrap now lives
+         * in the on-page "About" boxes, so there is no step/dot navigation left. */
         var STORAGE_KEY = "raleighDashboardWelcomeSeen";
         var overlay = document.getElementById("welcomeOverlay");
-        var panels = Array.prototype.slice.call(document.querySelectorAll(".welcome-panel"));
-        var dotsWrap = document.getElementById("welcomeDots");
-        var backBtn = document.getElementById("welcomeBack");
-        var nextBtn = document.getElementById("welcomeNext");
         var agreeBtn = document.getElementById("welcomeAgree");
         var agreeCheck = document.getElementById("welcomeAgreeCheck");
         var closeBtn = document.getElementById("welcomeClose");
-        var total = panels.length;
-        var step = 1;
-
-        panels.forEach(function () {
-          var dot = document.createElement("span");
-          dotsWrap.appendChild(dot);
-        });
-        var dots = Array.prototype.slice.call(dotsWrap.children);
-
-        function render() {
-          panels.forEach(function (p) {
-            p.classList.toggle("active", Number(p.getAttribute("data-step")) === step);
-          });
-          dots.forEach(function (d, i) {
-            d.classList.toggle("active", i === step - 1);
-          });
-          backBtn.style.visibility = step === 1 ? "hidden" : "visible";
-          var onLastStep = step === total;
-          nextBtn.style.display = onLastStep ? "none" : "inline-block";
-          agreeBtn.style.display = onLastStep ? "inline-block" : "none";
-        }
 
         function close() {
           overlay.classList.remove("open");
           try { localStorage.setItem(STORAGE_KEY, "true"); } catch (e) {}
         }
 
-        backBtn.addEventListener("click", function () { if (step > 1) { step--; render(); } });
-        nextBtn.addEventListener("click", function () { if (step < total) { step++; render(); } });
         agreeCheck.addEventListener("change", function () { agreeBtn.disabled = !agreeCheck.checked; });
         agreeBtn.addEventListener("click", close);
         closeBtn.addEventListener("click", close);
-
-        render();
 
         var alreadySeen = false;
         try { alreadySeen = localStorage.getItem(STORAGE_KEY) === "true"; } catch (e) {}
@@ -172,8 +93,61 @@
       </nav>
     </header>
 
+    <!-- Section "About" boxes. These carry the guidance that used to sit behind
+         the multi-step welcome pop-up; each is collapsible so it can be folded
+         away once read, and the copy matches the approved language doc. -->
+    <div class="info-wrap">
+      <details class="info-box" open>
+        <summary>City of Raleigh Housing Production Dashboard</summary>
+        <div class="info-box-body">
+          <p>Welcome to the City of Raleigh's Housing Production Dashboard. In this dashboard you will find demographic data and housing production data for the City of Raleigh.</p>
+          <p>This dashboard has three components—an interactive map, a section of interactive charts detailing overall production data, and a section of interactive charts specific to the 2020 Housing Bond.</p>
+        </div>
+      </details>
+    </div>
+
     <div class="section-band" style="border-top: 10px solid var(--leaf-green);">
       <h1>Housing Landscape Map</h1>
+    </div>
+
+    <div class="info-wrap">
+      <details class="info-box" open>
+        <summary>What this interactive dashboard map contains</summary>
+        <div class="info-box-body">
+          <div class="info-cols">
+            <div>
+              <p class="info-subhead">Demographic data</p>
+              <ul>
+                <li>Median rent</li>
+                <li>Vacancy rate</li>
+                <li>Count of total rental units</li>
+                <li>% Vacant housing units</li>
+                <li>% Owner-occupied housing units</li>
+                <li>% Homeowners cost-burdened / severely cost-burdened</li>
+                <li>% Renters cost-burdened / severely cost-burdened</li>
+              </ul>
+            </div>
+            <div>
+              <p class="info-subhead">Housing production data</p>
+              <ul>
+                <li>On affordable housing construction and preservation.</li>
+                <li>Information on affordable and subsidized housing projects that are not City-funded.</li>
+              </ul>
+            </div>
+            <div>
+              <p class="info-subhead">Geographic context</p>
+              <ul>
+                <li>Transit options</li>
+                <li>Council districts</li>
+                <li>Neighborhood Conservation Overlay Districts</li>
+              </ul>
+            </div>
+          </div>
+          <p>In the map section, you can find information on City-funded projects as well as non-City funded affordable housing, such as affordable housing that received federal funding.</p>
+          <p class="info-subhead">Helpful information</p>
+          <p>For the interactive map, units are counted as "Complete" once they have received a Certificate of Occupancy. Units in the "Pipeline" are units either under construction or in the pre-construction phase.</p>
+        </div>
+      </details>
     </div>
 
     <!-- ============================ MAP SECTION ============================ -->
@@ -197,12 +171,19 @@
             <select id="fStatus"><option value="">All</option><option value="Complete">Complete</option><option value="Pipeline">In pipeline</option></select>
           </div>
           <div class="field">
-            <label>City funding source</label>
-            <div class="checks" id="fFundingChecks"></div>
-            <div class="checks fund-mode" id="fFundingMode">
-              <label><input type="radio" name="fundMode" value="any" checked /> Match <strong>any</strong> selected</label>
-              <label><input type="radio" name="fundMode" value="all" /> Match <strong>all</strong> selected</label>
+            <!-- The Any/All buttons sit on the label row so they read as belonging
+                 to this filter specifically, not to the panel as a whole. -->
+            <div class="field-head">
+              <label id="fFundingLabel">City funding source</label>
+              <span class="seg-caption">match</span>
+              <div class="seg" id="fFundingMode" role="group" aria-labelledby="fFundingLabel">
+                <button type="button" class="seg-btn is-active" data-mode="any" aria-pressed="true"
+                        title="Show records that use ANY of the selected funding sources">Any</button>
+                <button type="button" class="seg-btn" data-mode="all" aria-pressed="false"
+                        title="Show records that use ALL of the selected funding sources">All</button>
+              </div>
             </div>
+            <div class="checks" id="fFundingChecks"></div>
           </div>
           <div class="field">
             <label for="loanMinN">City funding — City of Raleigh loan ($)</label>
@@ -318,6 +299,17 @@
     </div>
 
     <div id="dashboard" class="dash-wrap">
+      <details class="info-box" open>
+        <summary>Raleigh's Housing Production by the Numbers</summary>
+        <div class="info-box-body">
+          <p class="info-subhead">About the City of Raleigh's Housing Production Dashboard</p>
+          <p>For this interactive chart section, units are counted as "Complete" at different times.</p>
+          <p>For Housing Development, both Preservation and New Construction, units are considered "Completed" when they have received a Certificate of Occupancy. Until then (i.e. when they are in Pre-Construction or Under Construction), they are considered in the "Pipeline".</p>
+          <p>Home Buyer Assistance projects are considered "Complete" once homeowners have received the assistance funds from the City of Raleigh.</p>
+          <p>Home Repair units are considered "Complete" when all construction work has been finished.</p>
+        </div>
+      </details>
+
       <h2 style="color:var(--raleigh-green);font-size:1.05rem;margin:4px 0 4px;">Citywide production</h2>
       <div><span class="src-badge" id="truthBadge">Source: Housing Production Tracker (aggregate table)</span></div>
       <div class="caveat" id="citywideCaveat" style="margin-top:8px;"></div>
@@ -422,6 +414,14 @@
     </div>
 
     <div class="dash-wrap" style="padding-top: 14px;">
+      <details class="info-box" open>
+        <summary>2020 Housing Bond</summary>
+        <div class="info-box-body">
+          <p>This section contains information only regarding housing production and preservation funded by the 2020 Housing Bond.</p>
+          <p>All units in this section are tracked by commitment.</p>
+        </div>
+      </details>
+
       <!-- One section for everything 2020 Bond. The status filter drives the
            project-level widgets; the bond-wide totals come from a table with no
            complete/pipeline dimension, so those cards carry an "all statuses"
@@ -1009,7 +1009,13 @@
       fFundingChecks.innerHTML = FUNDING_SOURCES.map((s, i) =>
         `<label><input type="checkbox" value="${i}" /> ${s.label}</label>`).join("");
       const fFunding = [...fFundingChecks.querySelectorAll("input[type=checkbox]")];
-      const fFundingMode = [...document.querySelectorAll("input[name=fundMode]")];
+      const fFundingMode = [...document.querySelectorAll("#fFundingMode .seg-btn")];
+      const fundMode = () => (fFundingMode.find(b => b.classList.contains("is-active")) || {}).dataset?.mode || "any";
+      const setFundMode = (mode) => fFundingMode.forEach(b => {
+        const on = b.dataset.mode === mode;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
       const [fYear, fStatus, fDevType, fDistrict, fNcod] =
         ["fYear", "fStatus", "fDevType", "fDistrict", "fNcod"].map(id => document.getElementById(id));
 
@@ -1165,7 +1171,7 @@
         const ulo = +unitMinR.value, uhi = +unitMaxR.value, unitActive = unitIsActive();
         const amiChecked = fAmi.filter(cb => cb.checked).map(cb => +cb.value);
         const fundChecked = fFunding.filter(cb => cb.checked).map(cb => FUNDING_SOURCES[+cb.value]);
-        const fundAll = (fFundingMode.find(r => r.checked) || {}).value === "all";
+        const fundAll = fundMode() === "all";
         const results = await Promise.all(HOUSING_LAYERS.map(async cfg => {
           const layer = housing[cfg.id], map = FILTERABLE[cfg.id];
           const clauses = []; let eligible = true;
@@ -1219,13 +1225,18 @@
       [fYear, fStatus, fDevType, fDistrict, fNcod].forEach(s => s.addEventListener("change", applyFilters));
       fAmi.forEach(cb => cb.addEventListener("change", applyFilters));
       fFunding.forEach(cb => cb.addEventListener("change", applyFilters));
-      // Re-applying on a mode change only matters once 2+ sources are picked.
-      fFundingMode.forEach(r => r.addEventListener("change", () => { if (fFunding.filter(cb => cb.checked).length > 1) applyFilters(); }));
+      // The button state always updates; re-querying only matters once 2+ sources
+      // are picked, since with one source any/all are the same filter.
+      fFundingMode.forEach(b => b.addEventListener("click", () => {
+        if (b.classList.contains("is-active")) return;
+        setFundMode(b.dataset.mode);
+        if (fFunding.filter(cb => cb.checked).length > 1) applyFilters();
+      }));
       document.getElementById("resetBtn").addEventListener("click", () => {
         [fYear, fStatus, fDevType, fDistrict, fNcod].forEach(s => (s.value = ""));
         fAmi.forEach(cb => (cb.checked = false));
         fFunding.forEach(cb => (cb.checked = false));
-        fFundingMode.forEach(r => (r.checked = r.value === "any"));
+        setFundMode("any");
         loanMinR.value = 0; loanMaxR.value = LOAN_MAX; updateLoanUI();
         unitMinR.value = 0; unitMaxR.value = UNIT_MAX; updateUnitUI();
         applyFilters();
