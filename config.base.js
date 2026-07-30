@@ -32,6 +32,15 @@ export const BRAND = {
 export const ORG = "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services";
 export const WEBMAP_ID = "f0787de35a2e4f44bb1c717cbc12683e";
 
+/* --- ArcGIS sign-in --------------------------------------------------------- *
+ * Anonymous by default. The Internal build overrides this once an AGOL App ID
+ * is registered, which is what lets it read layers that are not shared publicly.
+ * appId: null  ->  no sign-in attempted (fine while the layers are public).     */
+export const AUTH = {
+  appId: null,
+  portalUrl: "https://www.arcgis.com",
+};
+
 /* --- Map defaults ----------------------------------------------------------- */
 export const MAP = {
   basemap: "community",   // "community" (matches web map) | "osm"
@@ -112,6 +121,27 @@ export const DEV_FIELDS = {
   ],
 };
 
+/* --- City funding sources (map filter) -------------------------------------
+ * One entry per fundable source. `field` is the broken-out amount column and
+ * `values` are the exact Funding_Source text values that mean the same source,
+ * so a record matches if EITHER carries it. A row can be tagged "Multiple" in
+ * Funding_Source, which says nothing on its own — hence "Multiple" is
+ * deliberately absent here; those rows are matched through `field` instead.
+ *
+ * The same column is typed differently across layers (some are String where a
+ * column happened to be empty at publish). applyFilters checks each layer's
+ * real field type and drops the numeric half of the test where it would be
+ * invalid, so a mistyped column degrades to a text-only match rather than
+ * erroring the whole query.                                                  */
+export const FUNDING_SOURCES = [
+  { label: "Local",     field: "Local",                                  values: ["Local"] },
+  { label: "2020 Bond", field: "f_2020_Bond",                            values: ["2020 Bond"] },
+  { label: "HOME",      field: "HOME",                                   values: ["HOME"] },
+  { label: "CDBG",      field: "Community_Development_Block_Grant_CDBG", values: ["Community Development Block Grant (CDBG)"] },
+  { label: "DAHF",      field: "Dedicated_Affordable_Housing_Fund_DAHF", values: ["Dedicated Affordable Housing Fund (DAHF)"] },
+  { label: "Other",     field: "Other",                                  values: ["Other"] },
+];
+
 /* --- Resident-level field maps --------------------------------------------- *
  * These are the fields present on BOTH the de-identified and the real layers.
  * The Internal build spreads extra PII keys (borrower, address, …) on top; the
@@ -142,14 +172,30 @@ export const OTHER_FIELDS_BASE = {
  * detail per layer (see config.internal.js).                                   */
 export const HUD_BASE = "https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services";
 export const WAKE = "STATE2KX='37' AND CURCNTY_NM LIKE 'Wake%'";
+
+/* HUD stores authority names in full federal form. Shorten them for display.
+ * This layer is NOT all RHA — 12 of the 15 Wake records are the Raleigh
+ * authority and 3 are the county's (Garner / Wake Forest / Wendell), which is
+ * why the layer keeps its "(incl. RHA)" name and the popup names the specific
+ * authority. Values not listed fall through unchanged, so an authority that
+ * appears later still shows its real name rather than being dropped.          */
+export const HOUSING_AUTHORITY_LABELS = {
+  "Housing Authority of the City of Raleigh": "Raleigh Housing Authority (RHA)",
+  "Housing Authority of the County of Wake":  "Wake County Housing Authority",
+};
+
 export const HUD_LAYERS_BASE = [
   {
     id: "hud_public_housing",
-    title: "Public Housing Developments (incl. RHA)",
+    /* Must stay identical to this layer's legend entry in index.html — the same
+     * string is the filter toggle label, so a mismatch reads as two layers.    */
+    title: "HUD Public Housing (incl. RHA)",
     url: `${HUD_BASE}/Public_Housing_Developments/FeatureServer/0`,
     where: WAKE, style: "square", color: "#01426A",
-    name: ["PROJECT_NAME", "FORMAL_PARTICIPANT_NAME"], addr: ["STD_ADDR", "STD_CITY"], units: "TOTAL_UNITS",
-    extra: [["Housing authority", "FORMAL_PARTICIPANT_NAME"], ["ACC units", "ACC_UNITS"]],
+    /* Unit counts are deliberately off this popup: `units` is null so no "Units"
+     * row renders, and ACC units is not in `extra`. Housing authority stays. */
+    name: ["PROJECT_NAME", "FORMAL_PARTICIPANT_NAME"], addr: ["STD_ADDR", "STD_CITY"], units: null,
+    extra: [["Housing authority", "FORMAL_PARTICIPANT_NAME", HOUSING_AUTHORITY_LABELS]],
     visible: false,
   },
   {
@@ -157,8 +203,10 @@ export const HUD_LAYERS_BASE = [
     title: "Multifamily Assisted (Section 8 / 202 / 811)",
     url: `${HUD_BASE}/Multifamily_Properties_Assisted/FeatureServer/0`,
     where: WAKE, style: "diamond", color: "#189ABC",
-    name: ["PROPERTY_NAME_TEXT"], addr: ["ADDRESS_LINE1_TEXT", "PLACED_BASE_CITY_NAME_TEXT"], units: "TOTAL_ASSISTED_UNIT_COUNT",
-    extra: [["Total units", "TOTAL_UNIT_COUNT"], ["Category", "PROPERTY_CATEGORY_NAME"]],
+    /* Unit counts are deliberately off this popup as well — neither assisted
+     * units nor total units render. Category stays. */
+    name: ["PROPERTY_NAME_TEXT"], addr: ["ADDRESS_LINE1_TEXT", "PLACED_BASE_CITY_NAME_TEXT"], units: null,
+    extra: [["Category", "PROPERTY_CATEGORY_NAME"]],
     visible: false,
   },
   {
@@ -174,7 +222,11 @@ export const HUD_LAYERS_BASE = [
     id: "hud_insured_mf",
     title: "HUD-Insured Multifamily",
     url: `${HUD_BASE}/HUD_Insured_Multifamily_Properties/FeatureServer/0`,
-    where: WAKE, style: "x", color: "#A8322D",
+    /* Not rust — the BRT reference layer below is #A8322D, and two rust symbols
+     * on the map at once are indistinguishable. #99bbff matches the "Not
+     * specified" slice in the funding pie. This is a stroke-only "x", so the
+     * colour is applied to the outline rather than the fill (see hudMarker).    */
+    where: WAKE, style: "x", color: "#99bbff",
     name: ["PROPERTY_NAME_TEXT"], addr: ["ADDRESS_LINE1_TEXT", "PLACED_BASE_CITY_NAME_TEXT"], units: "MAXIMUM_CONTRACT_UNIT_COUNT",
     extra: [["Program", "PROGRAM_TYPE1"]],
     visible: false,

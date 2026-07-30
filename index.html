@@ -90,6 +90,23 @@
       </div>
     </div>
 
+    <!-- Reconciliation detail for the "City housing by geography" section. Populated
+         at runtime once both the summary table and the point layers have loaded. -->
+    <div class="info-overlay" id="reconOverlay">
+      <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="reconHeading">
+        <button class="welcome-close" id="reconClose" aria-label="Close">&times;</button>
+        <h2 id="reconHeading">Why the mapped totals differ from the citywide totals</h2>
+        <p>
+          The tiles in this section are counted from the <strong>mapped point layers</strong>. The citywide totals
+          at the top of the page come from the <strong>Housing Production Tracker summary table</strong>, which is the
+          reported source of truth. They are measuring different things, so they are not expected to agree. Every
+          figure below is calculated live from the same data feeding this page.
+        </p>
+        <div id="reconTableWrap" style="overflow-x:auto;"></div>
+        <p class="note" id="reconNotes" style="margin-top:14px;"></p>
+      </div>
+    </div>
+
     <script>
       (function () {
         var STORAGE_KEY = "raleighDashboardWelcomeSeen";
@@ -179,7 +196,14 @@
           <div class="field"><label for="fStatus">Status</label>
             <select id="fStatus"><option value="">All</option><option value="Complete">Complete</option><option value="Pipeline">In pipeline</option></select>
           </div>
-          <div class="field"><label for="fFunding">City funding source</label><select id="fFunding"><option value="">Any source</option></select></div>
+          <div class="field">
+            <label>City funding source</label>
+            <div class="checks" id="fFundingChecks"></div>
+            <div class="checks fund-mode" id="fFundingMode">
+              <label><input type="radio" name="fundMode" value="any" checked /> Match <strong>any</strong> selected</label>
+              <label><input type="radio" name="fundMode" value="all" /> Match <strong>all</strong> selected</label>
+            </div>
+          </div>
           <div class="field">
             <label for="loanMinN">City funding — City of Raleigh loan ($)</label>
             <div class="range-wrap">
@@ -263,7 +287,7 @@
           <div class="legend-item" style="margin-top:8px;"><span style="color:#01426A;font-size:1rem;">■</span> HUD Public Housing (incl. RHA)</div>
           <div class="legend-item"><span style="color:#189ABC;font-size:1rem;">◆</span> HUD Multifamily Assisted (Sec 8/202/811)</div>
           <div class="legend-item"><span style="color:#FBAE40;font-size:1rem;">▲</span> LIHTC properties</div>
-          <div class="legend-item"><span style="color:#A8322D;font-size:1rem;">✕</span> HUD-Insured Multifamily</div>
+          <div class="legend-item"><span style="color:#99bbff;font-size:1rem;">✕</span> HUD-Insured Multifamily</div>
         </div>
 
         <div class="panel-section" id="dataNotes">
@@ -344,10 +368,6 @@
       </div>
       <div class="card-grid">
         <div class="card">
-          <h3 style="margin:0 0 12px 0;">Units by funding source</h3>
-          <div class="chart-box" style="height: 300px;"><canvas id="fundingBySource"></canvas></div>
-        </div>
-        <div class="card">
           <h3 style="margin:0 0 12px 0;">Total funding by year</h3>
           <div class="chart-box" style="height: 300px;"><canvas id="fundingByYear"></canvas></div>
         </div>
@@ -381,9 +401,13 @@
         <select id="ncodSel" style="padding:7px 8px;font:inherit;font-size:.85rem;border:1px solid var(--border);border-radius:4px;"><option value="">All areas</option></select>
       </div>
       <div class="caveat" id="distCaveat">
-        Derived from the <strong>mapped point layers</strong> (geometry), not the aggregate tracker. These counts will
-        <strong>not match</strong> the citywide totals above: the de-identified layers exclude any records that could not be
-        geocoded, and "units" are counted per point rather than as the tracker reports them.
+        Derived from the <strong>mapped point layers</strong> (geometry), not the aggregate tracker. These counts include
+        <strong>both completed and pipeline</strong> units and will <strong>not match</strong> the citywide totals above:
+        the de-identified layers exclude any records that could not be geocoded, and "units" are counted per point rather
+        than as the tracker reports them.
+      </div>
+      <div style="margin-top:8px;">
+        <button type="button" class="btn secondary" id="reconOpen">More info — why these differ from the citywide totals</button>
       </div>
       <div class="kpi-row" id="distKpis" style="margin-top:14px;"></div>
       <div class="card wide">
@@ -398,9 +422,23 @@
     </div>
 
     <div class="dash-wrap" style="padding-top: 14px;">
-      <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:4px 0 4px;">2020 Housing Bond Totals</h2>
+      <!-- One section for everything 2020 Bond. The status filter drives the
+           project-level widgets; the bond-wide totals come from a table with no
+           complete/pipeline dimension, so those cards carry an "all statuses"
+           badge instead of silently ignoring the filter. -->
+      <div class="bond-filter-bar">
+        <label for="bondStatusFilter"><strong>Show</strong></label>
+        <select id="bondStatusFilter">
+          <option value="">Committed — complete &amp; pipeline</option>
+          <option value="Complete">Complete only</option>
+          <option value="Pipeline">Pipeline only</option>
+        </select>
+        <span class="bond-filter-note">Applies to the development-project figures. Bond-wide totals are not broken out by status in their source.</span>
+      </div>
+      <div class="caveat" id="bondCaveat" style="margin-top:10px;">Note: The 2020 Bond data below comes from a separate data source and is not tabulated in the same way as above. Be advised that totals will not always match.</div>
+
+      <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:18px 0 4px;">Bond-wide totals <span class="status-badge">all statuses</span></h2>
       <div><span class="src-badge">Source: 2020 Bond Tracker (f_2020_Bond_Tracker_Bond_2020_Totals)</span></div>
-      <div class="caveat" id="bondCaveat" style="margin-top:8px;">Note: The 2020 Bond data below comes from a separate data source and is not tabulated in the same way as above. Be advised that totals will not always match.</div>
 
       <div class="card-grid" style="margin-top:12px;">
         <div class="card bond">
@@ -422,11 +460,11 @@
       <!-- Bond visualizations: keep stacked units chart and pivot table only (no CSV exports) -->
       <div class="card-grid">
         <div class="card bond wide">
-          <h4>2020 Bonds Units by fiscal year (by 2020 Bond Category)</h4>
+          <h4>2020 Bonds Units by fiscal year (by 2020 Bond Category) <span class="status-badge">all statuses</span></h4>
           <div class="chart-box"><canvas id="bondStackedUnits" style="height:240px;"></canvas></div>
         </div>
         <div class="card bond wide">
-          <h4>2020 Bond Tracker Pivot</h4>
+          <h4>2020 Bond Tracker Pivot <span class="status-badge">all statuses</span></h4>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
             <label for="pivotMetric">Metric</label>
             <select id="pivotMetric" style="margin-left:6px;padding:6px;font:inherit;"><option value="Total_Units">Units</option><option value="Funds_Committed">Funds committed</option></select>
@@ -435,15 +473,15 @@
         </div>
       </div>
 
-      <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:30px 0 4px;border-top:1px solid var(--border);padding-top:20px;">2020 Housing Bond Development Projects (PPP, LIHTC Gap Financing, Site Acquisition Only)</h2>
-      <div><span class="src-badge">Source: 2020 Bond Tracker (f_2020_Bond_Tracker_Housing_Development_2020)</span></div>
+      <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:26px 0 4px;">Development projects <span id="bondDevScope" class="status-badge status-badge-live">complete &amp; pipeline</span></h2>
+      <div><span class="src-badge">Source: 2020 Bond Tracker (f_2020_Bond_Tracker_Housing_Development_2020) — PPP, LIHTC Gap Financing and Site Acquisition only</span></div>
 
       <div class="card-grid" style="margin-top:12px;">
         <div class="card bond wide">
           <h4>2020 Bond housing development summary</h4>
           <!-- Sits inside the card it describes, so it stays with the content on
                both builds instead of being stripped as a section banner. -->
-          <div class="caveat card-note" style="margin-top:0;margin-bottom:10px;">This section includes every project in the table, with no filtering applied. Financial fields are intentionally excluded from the summary KPIs.</div>
+          <div class="caveat card-note" id="bondDevCaveat" style="margin-top:0;margin-bottom:10px;"></div>
           <div class="kpi-row" id="bondDevKpis" style="margin-top:6px;"></div>
         </div>
       </div>
@@ -463,14 +501,9 @@
       </div>
       <div class="card-grid">
         <div class="card wide">
-          <h4 style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span>2020 Bond housing development projects</span>
-            <select id="bondDevStatusFilter" style="font:inherit;font-size:.8rem;font-weight:400;padding:4px 6px;border:1px solid var(--border);border-radius:4px;">
-              <option value="">All statuses</option>
-              <option value="Complete">Complete</option>
-              <option value="Pipeline">Pipeline</option>
-            </select>
-          </h4>
+          <!-- Status is driven by the section-level filter at the top now, so the
+               per-table selector that used to live here has been removed. -->
+          <h4>2020 Bond housing development projects</h4>
           <div class="table-scroll"><table class="data-table" id="bondDevList"></table></div>
         </div>
       </div>
@@ -483,7 +516,8 @@
       import {
         MAP, HOUSING_LAYERS, HUD_LAYERS, REFERENCE_LAYERS, SUMMARY_TABLE,
         DEV_FIELDS, REHAB_FIELDS, HBA_FIELDS, OTHER_FIELDS, BRAND,
-        MODE, UI,
+        FUNDING_SOURCES,
+        MODE, UI, AUTH,
       } from "./config.js";
 
       /* ---- build-mode wiring --------------------------------------------- *
@@ -496,6 +530,11 @@
       // Name the build in the tab title and the masthead so the Internal (PII)
       // and Public copies can never be confused for one another on a shared screen.
       if (UI.docTitle) document.title = UI.docTitle;
+      if (UI.noIndex) {
+        const m = document.createElement("meta");
+        m.name = "robots"; m.content = "noindex, nofollow, noarchive";
+        document.head.appendChild(m);
+      }
       const versionBadge = document.getElementById("versionBadge");
       if (versionBadge && UI.versionLabel) {
         versionBadge.textContent = UI.versionLabel;
@@ -507,6 +546,12 @@
       // dashboard charts can query them — they just never reach the map.
       const MAPPED_LAYERS = HOUSING_LAYERS.filter(c => c.showOnMap !== false);
       const RESIDENT_ON_MAP = MAPPED_LAYERS.some(c => c.kind !== "dev");
+      /* Noun for the filter result count. "developments" is only accurate when the
+       * map is development-only (External); with resident-level layers mapped
+       * (Internal) a home repair or homebuyer loan is not a development, so the
+       * neutral noun is used. Derived from what is actually mapped rather than
+       * from MODE, so it stays correct if showOnMap ever changes.               */
+      const RESULT_NOUN = RESIDENT_ON_MAP ? ["record", "records"] : ["development", "developments"];
 
       // Sidebar copy that differs by build.
       const dataNotesBody = document.getElementById("dataNotesBody");
@@ -523,6 +568,34 @@
         $arcgis.import("@arcgis/core/layers/VectorTileLayer.js"),
         $arcgis.import("@arcgis/core/Basemap.js"),
       ]);
+
+      /* ---- ArcGIS sign-in (Internal, once layers are restricted) ---------- *
+       * Inert unless AUTH.appId is set, so the public build and the current
+       * public-layer dev setup are unaffected. When an App ID is present the
+       * user is sent through AGOL OAuth before any layer query runs — without
+       * it, restricted layers return 403 and the map silently comes up empty. */
+      if (AUTH && AUTH.appId) {
+        try {
+          const [OAuthInfo, esriId] = await Promise.all([
+            $arcgis.import("@arcgis/core/identity/OAuthInfo.js"),
+            $arcgis.import("@arcgis/core/identity/IdentityManager.js"),
+          ]);
+          const info = new OAuthInfo({
+            appId: AUTH.appId,
+            portalUrl: AUTH.portalUrl,
+            popup: false,          // full-page redirect; avoids popup blockers
+          });
+          esriId.registerOAuthInfos([info]);
+          const sharingUrl = AUTH.portalUrl + "/sharing";
+          try {
+            await esriId.checkSignInStatus(sharingUrl);
+          } catch {
+            await esriId.getCredential(sharingUrl);   // redirects, then returns here
+          }
+        } catch (e) {
+          console.error("ArcGIS sign-in failed:", e);
+        }
+      }
 
       const viewEl = document.querySelector("arcgis-map");
       viewEl.center = MAP.center;
@@ -545,6 +618,13 @@
       /* ---- formatters ---------------------------------------------------- */
       const num  = (v) => (v == null || String(v).trim() === "") ? 0 : Number(v);
       const fmtMoney = (v) => (v == null || v === "") ? "—" : "$" + Number(v).toLocaleString("en-US", { maximumFractionDigits: 0 });
+      /* "FY 21-22" from the fiscal year's END year. "FY22" alone is ambiguous —
+       * it reads as calendar 2022 rather than the 2021-22 fiscal year. Falls back
+       * to the raw value if it isn't a year, so odd data still renders.        */
+      const fyFull = (endYear) => {
+        const y = parseInt(endYear, 10);
+        return y ? `FY ${String(y - 1).slice(2)}-${String(y).slice(2)}` : String(endYear ?? "");
+      };
       const fmtNum   = (v) => (v == null || v === "") ? "—" : Number(v).toLocaleString("en-US");
       const fmtDate  = (v) => {
         if (v == null || v === "") return "—";
@@ -593,11 +673,12 @@
       function devPopup(a) {
         const F = DEV_FIELDS;
         const isComplete = clean(a[F.projectStatus]) === "Complete";
-        const funds = F.fundingAmounts.filter(([f]) => num(a[f]) > 0).map(([f, lbl]) => `${lbl}: ${fmtMoney(a[f])}`);
+        const fundPairs = F.fundingAmounts.filter(([f]) => num(a[f]) > 0);
+        const funds = fundPairs.map(([f, lbl]) => `${lbl}: ${fmtMoney(a[f])}`);
         let h = `<div class="pop"><table>`;
         h += row("Developer", cleanTracked(a[F.developer]) || "—");
         h += row("Address", clean(a[F.address]) || "—");
-        h += row("Development Status", clean(a[F.status]) || clean(a[F.projectStatus]) || "—");
+        h += row("Development Status", clean(a[F.projectStatus]) || clean(a[F.status]) || "—");
         h += row("Fiscal year", clean(a[F.fiscalYear]) || "—");
         h += row("Total units", fmtNum(a[F.totalUnits]));
         if (num(a[F.homeownership]) > 0) h += row("Homeownership units", fmtNum(a[F.homeownership]));
@@ -605,7 +686,13 @@
         h += row("Construction Type", clean(a[F.construction]) || "—");
         h += row("LIHTC", clean(a[F.developmentType]) || "—");
         h += row("Council district", clean(a[F.council]) || "—");
-        h += row("Funding source", clean(a[F.fundingSource]) || "—");
+        /* "Multiple" is not useful on its own — resolve it to the actual sources
+         * using the broken-out funding fields that carry a value > 0. */
+        const fsRaw = clean(a[F.fundingSource]);
+        const fsText = (fsRaw && fsRaw.toLowerCase() === "multiple" && fundPairs.length)
+          ? fundPairs.map(([, lbl]) => lbl).join(" + ")
+          : (fsRaw || "—");
+        h += row("Funding source", fsText);
         // External: pipeline projects show funding SOURCE + units only.
         // Internal: dollar amounts and the AMI bar are shown for pipeline too.
         const showFin = isComplete || UI.showPipelineFinancials;
@@ -703,13 +790,61 @@
 
       /* ---- HUD / subsidized layers -------------------------------------- */
       const firstNonNull = (a, keys) => { for (const k of keys) { const v = a[k]; if (v != null && String(v).trim() !== "") return String(v).trim(); } return null; };
-      const hudMarker = (style, color) => ({ type: "simple-marker", style, size: 8, color, outline: { color: "#ffffff", width: 1 } });
+      /* "x" and "cross" are stroke-only glyphs — SimpleMarkerSymbol draws no fill
+       * for them, so `color` never shows and the marker renders in the outline
+       * colour. With a white outline that made HUD-Insured Multifamily invisible.
+       *
+       * A single simple-marker has only one stroke, so it cannot carry both the
+       * layer colour and a halo. Stroke glyphs are drawn as a CIM symbol instead:
+       * the layer colour on top, over a slightly wider dark stroke that shows as
+       * a thin halo — which is what lets a light colour hold up against a pale
+       * basemap. Filled styles keep the plain simple-marker they always had.    */
+      const GLYPH_WIDTH = 3;            // visible stroke, in px
+      const GLYPH_HALO_WIDTH = 4.5;     // wider ⇒ ~0.75px of halo shows each side
+      const GLYPH_HALO_COLOR = [65, 64, 66, 100];   // #414042, neutral dark
+      const cimRgb = (hex) => {
+        const n = parseInt(String(hex).replace("#", ""), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 100];
+      };
+      /* size === frame extent keeps stroke widths literal in pixels (scale 1:1) */
+      const strokeGlyph = (style, color, width) => ({
+        type: "CIMVectorMarker", enable: true, size: 10,
+        frame: { xmin: -5, ymin: -5, xmax: 5, ymax: 5 },
+        markerGraphics: [{
+          type: "CIMMarkerGraphic",
+          geometry: { paths: style === "x"
+            ? [[[-5, -5], [5, 5]], [[-5, 5], [5, -5]]]
+            : [[[-5, 0], [5, 0]], [[0, -5], [0, 5]]] },
+          symbol: { type: "CIMLineSymbol", symbolLayers: [
+            { type: "CIMSolidStroke", enable: true, width, color, capStyle: "Round" }] },
+        }],
+      });
+      const hudMarker = (style, color) => {
+        if (style !== "x" && style !== "cross") {
+          return { type: "simple-marker", style, size: 8, color, outline: { color: "#ffffff", width: 1 } };
+        }
+        return {
+          type: "cim",
+          data: { type: "CIMSymbolReference", symbol: { type: "CIMPointSymbol", symbolLayers: [
+            strokeGlyph(style, cimRgb(color), GLYPH_WIDTH),          // index 0 draws on top
+            strokeGlyph(style, GLYPH_HALO_COLOR, GLYPH_HALO_WIDTH),  // behind ⇒ halo
+          ] } },
+        };
+      };
       function hudPopup(hc, a) {
         const addr = hc.addr.map(k => a[k]).filter(v => v != null && String(v).trim() !== "").map(v => String(v).trim()).join(", ");
         let h = `<div class="pop"><table>`;
         if (addr) h += row("Address", addr);
         if (hc.units && a[hc.units] != null && String(a[hc.units]) !== "0") h += row("Units", fmtNum(a[hc.units]));
-        (hc.extra || []).forEach(([lbl, key]) => { const v = a[key]; if (v != null && String(v).trim() !== "" && String(v) !== "0") h += row(lbl, String(v).trim()); });
+        /* An `extra` entry may carry an optional third element: a value → display
+         * label map (e.g. shortening HUD's full authority names). Unmapped values
+         * fall through unchanged so nothing is ever silently dropped.           */
+        (hc.extra || []).forEach(([lbl, key, labels]) => {
+          const raw = a[key];
+          if (raw == null || String(raw).trim() === "" || String(raw) === "0") return;
+          const v = String(raw).trim();
+          h += row(lbl, (labels && labels[v]) || v);
+        });
         return h + `</table></div>`;
       }
       const hudToggles = document.getElementById("hudToggles");
@@ -868,8 +1003,25 @@
       fAmiChecks.innerHTML = AMI_LABELS.map((lbl, i) =>
         `<label><input type="checkbox" value="${i}" /> ${lbl} AMI</label>`).join("");
       const fAmi = [...fAmiChecks.querySelectorAll("input[type=checkbox]")];
-      const [fYear, fStatus, fFunding, fDevType, fDistrict, fNcod] =
-        ["fYear", "fStatus", "fFunding", "fDevType", "fDistrict", "fNcod"].map(id => document.getElementById(id));
+      /* City funding source is a multi-select over the canonical source list
+       * (not the raw Funding_Source values), plus an any/all combine mode.    */
+      const fFundingChecks = document.getElementById("fFundingChecks");
+      fFundingChecks.innerHTML = FUNDING_SOURCES.map((s, i) =>
+        `<label><input type="checkbox" value="${i}" /> ${s.label}</label>`).join("");
+      const fFunding = [...fFundingChecks.querySelectorAll("input[type=checkbox]")];
+      const fFundingMode = [...document.querySelectorAll("input[name=fundMode]")];
+      const [fYear, fStatus, fDevType, fDistrict, fNcod] =
+        ["fYear", "fStatus", "fDevType", "fDistrict", "fNcod"].map(id => document.getElementById(id));
+
+      /* Field types vary by layer — a column that was empty at publish time can
+       * land as String, and `String > 0` is a hard query error. Only emit the
+       * numeric half of a funding test where the column really is numeric.    */
+      const NUMERIC_FIELD_TYPES = new Set(
+        ["small-integer", "integer", "single", "double", "long", "big-integer"]);
+      const isNumericField = (layer, name) => {
+        const f = (layer.fields || []).find(x => x.name.toLowerCase() === String(name).toLowerCase());
+        return !!f && NUMERIC_FIELD_TYPES.has(f.type);
+      };
 
       const fillSel = (sel, vals) => vals.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v; sel.appendChild(o); });
       // distinct values unioned across every housing layer that has the field
@@ -898,7 +1050,8 @@
         return !end || end <= 2026;
       });
       fillSel(fYear,     publishedYears);
-      fillSel(fFunding,  await unionDistinct("funding"));
+      // Funding source is driven by FUNDING_SOURCES, not by distinct values —
+      // the raw column includes "Multiple", which is not a source to filter on.
       fillSel(fDevType,  await unionDistinct("devType"));
       fillSel(fDistrict, await unionDistinct("district"));
       (await unionDistinct("ncod", true)).forEach(v => {
@@ -1007,10 +1160,12 @@
 
       const sqlStr = (v) => "'" + String(v).replace(/'/g, "''") + "'";
       async function applyFilters() {
-        const eq = { year: fYear.value, status: fStatus.value, funding: fFunding.value, devType: fDevType.value, district: fDistrict.value, ncod: fNcod.value };
+        const eq = { year: fYear.value, status: fStatus.value, devType: fDevType.value, district: fDistrict.value, ncod: fNcod.value };
         const lo = +loanMinR.value, hi = +loanMaxR.value, loanActive = loanIsActive();
         const ulo = +unitMinR.value, uhi = +unitMaxR.value, unitActive = unitIsActive();
         const amiChecked = fAmi.filter(cb => cb.checked).map(cb => +cb.value);
+        const fundChecked = fFunding.filter(cb => cb.checked).map(cb => FUNDING_SOURCES[+cb.value]);
+        const fundAll = (fFundingMode.find(r => r.checked) || {}).value === "all";
         const results = await Promise.all(HOUSING_LAYERS.map(async cfg => {
           const layer = housing[cfg.id], map = FILTERABLE[cfg.id];
           const clauses = []; let eligible = true;
@@ -1018,6 +1173,20 @@
             if (!val) continue;
             if (!map[key]) { eligible = false; break; }   // layer lacks this field → hide + N/A
             clauses.push(`${map[key]} = ${sqlStr(val)}`);
+          }
+          /* A record counts as using a source if the broken-out amount column
+           * carries a value, OR Funding_Source names that source outright.
+           * any → OR across the picked sources; all → AND.                    */
+          if (eligible && fundChecked.length) {
+            if (!map.funding) eligible = false;   // layer has no funding data → hide + N/A
+            else {
+              const parts = fundChecked.map(s => {
+                const tests = s.values.map(v => `${map.funding} = ${sqlStr(v)}`);
+                if (isNumericField(layer, s.field)) tests.unshift(`${s.field} > 0`);
+                return "(" + tests.join(" OR ") + ")";
+              });
+              clauses.push("(" + parts.join(fundAll ? " AND " : " OR ") + ")");
+            }
           }
           if (eligible && loanActive) {
             if (!map.loan) eligible = false;
@@ -1041,17 +1210,22 @@
           return count;
         }));
         const total = results.reduce((s, n) => s + n, 0);
-        document.getElementById("resultCount").innerHTML = `<strong>${total.toLocaleString()}</strong> city housing record${total === 1 ? "" : "s"} shown on the map.`;
+        document.getElementById("resultCount").innerHTML = `<strong>${total.toLocaleString()}</strong> city housing ${total === 1 ? RESULT_NOUN[0] : RESULT_NOUN[1]} shown on the map.`;
         // keep the dashboard geography panel in sync with the map's district filter
         syncGeography(fDistrict.value, "");
         writeUrl(fDistrict.value);
       }
       // Every filter applies instantly (no Apply button).
-      [fYear, fStatus, fFunding, fDevType, fDistrict, fNcod].forEach(s => s.addEventListener("change", applyFilters));
+      [fYear, fStatus, fDevType, fDistrict, fNcod].forEach(s => s.addEventListener("change", applyFilters));
       fAmi.forEach(cb => cb.addEventListener("change", applyFilters));
+      fFunding.forEach(cb => cb.addEventListener("change", applyFilters));
+      // Re-applying on a mode change only matters once 2+ sources are picked.
+      fFundingMode.forEach(r => r.addEventListener("change", () => { if (fFunding.filter(cb => cb.checked).length > 1) applyFilters(); }));
       document.getElementById("resetBtn").addEventListener("click", () => {
-        [fYear, fStatus, fFunding, fDevType, fDistrict, fNcod].forEach(s => (s.value = ""));
+        [fYear, fStatus, fDevType, fDistrict, fNcod].forEach(s => (s.value = ""));
         fAmi.forEach(cb => (cb.checked = false));
+        fFunding.forEach(cb => (cb.checked = false));
+        fFundingMode.forEach(r => (r.checked = r.value === "any"));
         loanMinR.value = 0; loanMaxR.value = LOAN_MAX; updateLoanUI();
         unitMinR.value = 0; unitMaxR.value = UNIT_MAX; updateUnitUI();
         applyFilters();
@@ -1077,6 +1251,27 @@
        * =================================================================== */
       Chart.defaults.font.family = "Calibri, 'Segoe UI', sans-serif";
       Chart.defaults.color = BRAND.bodyText;
+
+      /* Clicking a legend key toggles that series out of the chart, which is not
+       * discoverable on sight. Set hover text + a pointer cursor on the legend of
+       * every chart that shows one. Applied as a Chart.js default so it covers
+       * charts added later too; charts built with legend.display:false never fire
+       * these. The title is set on the canvas, so it is cleared again on leave —
+       * otherwise it would linger while hovering the plotted data.              */
+      const legendCanvas = (e, legend) =>
+        (legend && legend.chart && legend.chart.canvas) || (e && e.native && e.native.target) || null;
+      Chart.defaults.plugins.legend.onHover = (e, item, legend) => {
+        const c = legendCanvas(e, legend);
+        if (!c) return;
+        c.style.cursor = "pointer";
+        c.title = "Select to filter";
+      };
+      Chart.defaults.plugins.legend.onLeave = (e, item, legend) => {
+        const c = legendCanvas(e, legend);
+        if (!c) return;
+        c.style.cursor = "";
+        c.removeAttribute("title");
+      };
       const SF = SUMMARY_TABLE.fields, CATS = SUMMARY_TABLE.categories;
 
       const sumUrl = `${SUMMARY_TABLE.url}/query?where=1%3D1&outFields=*&orderByFields=${SF.endYear},${SF.quarter}&returnGeometry=false&f=json`;
@@ -1130,7 +1325,7 @@
 
         // Years (rows) and categories (columns)
         const years = Array.from(new Set(bondRows.map(r => r.End_Year).filter(v => v !== null))).sort((a, b) => a - b);
-        const yearLabels = years.map(y => 'FY' + String(y).slice(2));
+        const yearLabels = years.map(y => fyFull(y));
 
         // Allowed categories and normalization / mapping helper to avoid "Not specified" and to normalize variants
         const ALLOWED_CATS = ["Home Repair","Public Private Partnerships","LIHTC Gap Financing","Site Acquisition","Homebuyer Assistance"];
@@ -1148,23 +1343,29 @@
         // derive categories present in the data but limited to the allowed list, in the specified order
         const categories = ALLOWED_CATS.filter(ac => bondRows.some(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === ac));
 
-        // Header: first row has category groupings (each spans 3 cols for Units / Funds available / Funds committed)
-        const headerTop = `<thead><tr><th rowspan="2">Fiscal year</th>${categories.map(c => `<th colspan="3">${c}</th>`).join('')}<th colspan="3">Totals</th></tr>`;
-        const headerBottom = `<tr>${categories.map(() => `<th>Units</th><th>Funds available</th><th>Funds committed</th>`).join('')}<th>Units</th><th>Funds available</th><th>Funds committed</th></tr></thead>`;
+        /* Header: each category spans 2 cols — Units / Funds committed. "Funds
+         * available" is deliberately not in this table; it is a fixed allocation
+         * per category rather than production, and repeating it across every
+         * category doubled the table's width. The allocation still drives the
+         * committed-vs-available meter below.                                   */
+        const headerTop = `<thead><tr><th rowspan="2">Fiscal year</th>${categories.map(c => `<th colspan="2">${c}</th>`).join('')}<th colspan="2">Totals</th></tr>`;
+        const headerBottom = `<tr>${categories.map(() => `<th>Units</th><th>Funds committed</th>`).join('')}<th>Units</th><th>Funds committed</th></tr></thead>`;
 
         let rowsHtml = '<tbody>';
         years.forEach((y, yi) => {
           let row = `<tr><td>${yearLabels[yi]}</td>`;
-          let yearUnitsTotal = 0, yearFundsAvailableTotal = 0, yearFundsCommittedTotal = 0;
+          let yearUnitsTotal = 0, yearFundsCommittedTotal = 0;
           categories.forEach(cat => {
             const matches = bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === cat && r.End_Year === y);
             const units = matches.reduce((s, r) => s + (Number(r.Total_Units) || 0), 0);
-            const fundsAvailable = matches.reduce((s, r) => s + (Number(r.Funds_Available) || 0), 0);
             const fundsCommitted = matches.reduce((s, r) => s + (Number(r.Funds_Committed) || 0), 0);
-            yearUnitsTotal += units; yearFundsAvailableTotal += fundsAvailable; yearFundsCommittedTotal += fundsCommitted;
-            row += `<td>${units.toLocaleString()}</td><td>$${fundsAvailable.toLocaleString()}</td><td>$${fundsCommitted.toLocaleString()}</td>`;
+            yearUnitsTotal += units; yearFundsCommittedTotal += fundsCommitted;
+            /* fmtMoney rounds to whole dollars — some source rows carry cents and
+             * others don't, so raw toLocaleString mixed "$3,855,000" with
+             * "$1,901,351.5" in the same row. Cents are noise at this scale.    */
+            row += `<td>${units.toLocaleString()}</td><td>${fmtMoney(fundsCommitted)}</td>`;
           });
-          row += `<td class="total-col">${yearUnitsTotal.toLocaleString()}</td><td class="total-col">$${yearFundsAvailableTotal.toLocaleString()}</td><td class="total-col">$${yearFundsCommittedTotal.toLocaleString()}</td></tr>`;
+          row += `<td class="total-col">${yearUnitsTotal.toLocaleString()}</td><td class="total-col">${fmtMoney(yearFundsCommittedTotal)}</td></tr>`;
           rowsHtml += row;
         });
 
@@ -1178,11 +1379,10 @@
         categories.forEach(cat => {
           const matches = bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === cat);
           const units = matches.reduce((s, r) => s + (Number(r.Total_Units) || 0), 0);
-          const fundsAvailable = matches.reduce((s, r) => s + (Number(r.Funds_Available) || 0), 0);
           const fundsCommitted = matches.reduce((s, r) => s + (Number(r.Funds_Committed) || 0), 0);
-          rowsHtml += `<td>${units.toLocaleString()}</td><td>$${fundsAvailable.toLocaleString()}</td><td>$${fundsCommitted.toLocaleString()}</td>`;
+          rowsHtml += `<td>${units.toLocaleString()}</td><td>${fmtMoney(fundsCommitted)}</td>`;
         });
-        rowsHtml += `<td class="total-col">${grandUnits.toLocaleString()}</td><td class="total-col">$${grandFundsAvailable.toLocaleString()}</td><td class="total-col">$${grandFundsCommitted.toLocaleString()}</td></tr>`;
+        rowsHtml += `<td class="total-col">${grandUnits.toLocaleString()}</td><td class="total-col">${fmtMoney(grandFundsCommitted)}</td></tr>`;
 
         rowsHtml += '</tbody>';
         document.getElementById('bond2020Table').innerHTML = headerTop + headerBottom + rowsHtml;
@@ -1219,10 +1419,6 @@
           return bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === c && r.End_Year === y)
                          .reduce((s, r) => s + (Number(r.Total_Units) || 0), 0);
         }));
-        const fundsAvailableMat = yearList.map(y => catList.map(c => {
-          return bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === c && r.End_Year === y)
-                         .reduce((s, r) => s + (Number(r.Funds_Available) || 0), 0);
-        }));
         const fundsCommittedMat = yearList.map(y => catList.map(c => {
           return bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === c && r.End_Year === y)
                          .reduce((s, r) => s + (Number(r.Funds_Committed) || 0), 0);
@@ -1236,7 +1432,7 @@
         const stackedDatasets = catList.map((c, i) => ({ label: c, data: yearList.map((y, yi) => unitsMat[yi][i]), backgroundColor: catColors[i] }));
         if (window.bondStackedChart) window.bondStackedChart.destroy();
         window.bondStackedChart = new Chart(document.getElementById('bondStackedUnits'), {
-          type: 'bar', data: { labels: yearList.map(y => 'FY' + String(y).slice(2)), datasets: stackedDatasets },
+          type: 'bar', data: { labels: yearList.map(y => fyFull(y)), datasets: stackedDatasets },
           options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'Units' } } }, plugins: { legend: { position: 'bottom' } } },
         });
 
@@ -1247,7 +1443,7 @@
           const header = `<thead><tr><th>Fiscal year</th>${catList.map(c => `<th>${c}</th>`).join('')}<th>Total</th></tr></thead>`;
           let body = '<tbody>';
           yearList.forEach((y, yi) => {
-            let row = `<tr><td>FY${String(y).slice(2)}</td>`;
+            let row = `<tr><td>${fyFull(y)}</td>`;
             let yearTotal = 0;
             catList.forEach((c, ci) => {
               const val = bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === c && r.End_Year === y)
@@ -1332,7 +1528,15 @@
       try {
         const devUrl = 'https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/f_2020_Bond_Tracker_Housing_Development_2020/FeatureServer/0/query?where=1%3D1&outFields=*&returnGeometry=false&f=json';
         const devJson = await (await fetch(devUrl)).json();
-        const devRows = devJson.features.map(f => f.attributes || {});
+        /* The source table carries a spreadsheet-style totals row: no project, no
+         * status, no category, but a Total_Units equal to the sum of every real
+         * row — which double-counted the headline unit figure. Drop any row that
+         * names neither a project nor a status, so it stays excluded even if a
+         * similar row reappears on a future refresh.                            */
+        const devRowsRaw = devJson.features.map(f => f.attributes || {});
+        const isRealProject = (r) => String(r.Project || '').trim() !== '' || String(r.Status || '').trim() !== '';
+        const devRows = devRowsRaw.filter(isRealProject);
+        const droppedTotalsRows = devRowsRaw.length - devRows.length;
 
         // local color palette for these charts
         const palette = [BRAND.raleighGreen, BRAND.leafGreen, BRAND.chartreuse, BRAND.teal, BRAND.midGreen, BRAND.amber, BRAND.rust, BRAND.navy];
@@ -1362,31 +1566,8 @@
         // Collapse detailed construction statuses down to Complete / Pipeline.
         const collapseStatus = s => (String(s || '').trim().toLowerCase() === 'complete' ? 'Complete' : 'Pipeline');
 
-        // summary KPIs
-        const totalProjects = devRows.length;
-        const totalUnits = devRows.reduce((s, r) => s + (Number(pick(r, unitFields)) || 0), 0);
-        const totalFunds = devRows.reduce((s, r) => s + (Number(pick(r, fundsFields)) || 0), 0);
-        document.getElementById('bondDevKpis').innerHTML = `
-          <div class="kpi"><div class="num">${totalProjects.toLocaleString()}</div><div class="lbl">Total Projects</div></div>
-          <div class="kpi"><div class="num">${totalUnits.toLocaleString()}</div><div class="lbl">Total Units</div></div>
-          <div class="kpi"><div class="num">${fmtMoney(totalFunds)}</div><div class="lbl">Funds Committed</div></div>`;
-
-        // Units by category (normalized onto the 5 canonical 2020 Bond categories)
-        const byCat = {};
-        devRows.forEach(r => {
-          const c = mapCategoryDev(pick(r, catFields));
-          const u = Number(pick(r, unitFields)) || 0;
-          byCat[c] = (byCat[c] || 0) + u;
-        });
-        const catLabels = ALLOWED_CATS_DEV.filter(c => byCat[c] > 0).concat(byCat['Other'] > 0 ? ['Other'] : []);
-        const catData = catLabels.map(l => byCat[l]);
-        if (window.bondDevCatChart) window.bondDevCatChart.destroy();
-        window.bondDevCatChart = new Chart(document.getElementById('bondDevByCategory'), {
-          type: 'pie', data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: catLabels.map((_,i) => palette[i % palette.length]) }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
-        });
-
-        // Units by status (collapsed to Complete / Pipeline)
+        /* Units by status is the chart that EXPLAINS the filter, so it is always
+         * built from the full set — filtering it would leave a single-slice pie. */
         const byStatus = {};
         devRows.forEach(r => {
           const s = collapseStatus(pick(r, statusFields));
@@ -1401,33 +1582,68 @@
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
         });
 
-        // Cumulative units by fund year
-        const byYearSum = {};
-        devRows.forEach(r => {
-          const y = (pick(r, fundYearFields) || '').toString().trim();
-          if (y) {
+        const allRows = devRows.slice().sort((a,b) => (''+pick(b, fyFundedFields)).localeCompare(''+pick(a, fyFundedFields)));
+
+        /* Everything below responds to the section-level status filter. */
+        function renderBondDev(statusFilter) {
+          const rows = statusFilter ? devRows.filter(r => collapseStatus(pick(r, statusFields)) === statusFilter) : devRows;
+
+          // summary KPIs
+          const totalProjects = rows.length;
+          const totalUnits = rows.reduce((s, r) => s + (Number(pick(r, unitFields)) || 0), 0);
+          const totalFunds = rows.reduce((s, r) => s + (Number(pick(r, fundsFields)) || 0), 0);
+          document.getElementById('bondDevKpis').innerHTML = `
+            <div class="kpi"><div class="num">${totalProjects.toLocaleString()}</div><div class="lbl">Projects</div></div>
+            <div class="kpi"><div class="num">${totalUnits.toLocaleString()}</div><div class="lbl">Units</div></div>
+            <div class="kpi"><div class="num">${fmtMoney(totalFunds)}</div><div class="lbl">Funds Committed</div></div>`;
+
+          const scopeLabel = statusFilter === 'Complete' ? 'complete only'
+            : statusFilter === 'Pipeline' ? 'pipeline only' : 'complete & pipeline';
+          document.getElementById('bondDevScope').textContent = scopeLabel;
+          document.getElementById('bondDevCaveat').innerHTML =
+            `Showing <strong>${scopeLabel}</strong> — ${totalProjects} of ${devRows.length} project(s) in the table.`
+            + (droppedTotalsRows ? ` A totals row carrying no project or status was excluded from the source table.` : '');
+
+          // Units by category (normalized onto the canonical 2020 Bond categories)
+          const byCat = {};
+          rows.forEach(r => {
+            const c = mapCategoryDev(pick(r, catFields));
             const u = Number(pick(r, unitFields)) || 0;
-            byYearSum[y] = (byYearSum[y] || 0) + u;
-          }
-        });
-        const yearLabels = Object.keys(byYearSum).sort((a, b) => {
-          const aYear = parseInt(a) || 0;
-          const bYear = parseInt(b) || 0;
-          return aYear - bYear;
-        });
-        let cumulative = 0;
-        const cumulativeData = yearLabels.map(y => {
-          cumulative += byYearSum[y];
-          return cumulative;
-        });
-        if (window.bondDevCumulativeChart) window.bondDevCumulativeChart.destroy();
-        window.bondDevCumulativeChart = new Chart(document.getElementById('bondDevCumulative'), {
-          type: 'line', data: { labels: yearLabels, datasets: [{ label: 'Cumulative Units', data: cumulativeData, backgroundColor: 'transparent', borderColor: BRAND.raleighGreen, borderWidth: 2, pointRadius: 4, pointBackgroundColor: BRAND.raleighGreen, tension: 0.3, fill: false }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Fund Year' } }, y: { beginAtZero: true, title: { display: true, text: 'Units' } } } },
-        });
+            byCat[c] = (byCat[c] || 0) + u;
+          });
+          const catLabels = ALLOWED_CATS_DEV.filter(c => byCat[c] > 0).concat(byCat['Other'] > 0 ? ['Other'] : []);
+          const catData = catLabels.map(l => byCat[l]);
+          if (window.bondDevCatChart) window.bondDevCatChart.destroy();
+          window.bondDevCatChart = new Chart(document.getElementById('bondDevByCategory'), {
+            type: 'pie', data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: catLabels.map((_,i) => palette[i % palette.length]) }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+          });
+
+          // Cumulative units by fund year
+          const byYearSum = {};
+          rows.forEach(r => {
+            const y = (pick(r, fundYearFields) || '').toString().trim();
+            if (y) {
+              const u = Number(pick(r, unitFields)) || 0;
+              byYearSum[y] = (byYearSum[y] || 0) + u;
+            }
+          });
+          const yearLabels = Object.keys(byYearSum).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
+          let cumulative = 0;
+          const cumulativeData = yearLabels.map(y => { cumulative += byYearSum[y]; return cumulative; });
+          if (window.bondDevCumulativeChart) window.bondDevCumulativeChart.destroy();
+          window.bondDevCumulativeChart = new Chart(document.getElementById('bondDevCumulative'), {
+            /* Fund Year is stored as the end year (2023 = the 2022-23 fiscal
+             * year), so it is displayed in the same FY 22-23 form as the rest
+             * of the section rather than as a bare calendar year.              */
+            type: 'line', data: { labels: yearLabels.map(y => fyFull(y)), datasets: [{ label: 'Cumulative Units', data: cumulativeData, backgroundColor: 'transparent', borderColor: BRAND.raleighGreen, borderWidth: 2, pointRadius: 4, pointBackgroundColor: BRAND.raleighGreen, tension: 0.3, fill: false }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Fund year' } }, y: { beginAtZero: true, title: { display: true, text: 'Units' } } } },
+          });
+
+          renderBondDevList(statusFilter);
+        }
 
         // Scrollable project listing — exclude monetary/funding amount fields
-        const allRows = devRows.slice().sort((a,b) => (''+pick(b, fyFundedFields)).localeCompare(''+pick(a, fyFundedFields)));
         function renderBondDevList(statusFilter) {
           const rows = statusFilter ? allRows.filter(r => collapseStatus(pick(r, statusFields)) === statusFilter) : allRows;
           let tbl = `<thead><tr><th>Project</th><th>Category</th><th>Fiscal Year Funded</th><th>Status</th><th>Total Units</th></tr></thead><tbody>`;
@@ -1445,34 +1661,51 @@
           tbl += '</tbody>';
           document.getElementById('bondDevList').innerHTML = tbl;
         }
-        document.getElementById('bondDevStatusFilter').addEventListener('change', (e) => renderBondDevList(e.target.value));
-        renderBondDevList('');
+        document.getElementById('bondStatusFilter').addEventListener('change', (e) => renderBondDev(e.target.value));
+        renderBondDev('');
 
       } catch (e) { console.error('Bond development list load error', e); document.getElementById('bondDevKpis').innerHTML = '<div class="note">Could not load 2020 Bond development projects.</div>'; }
 
       /* =================================================================== *
        *  DISTRICT PANEL — aggregated from the mapped point layers (geometry)
        * =================================================================== */
+      /* `summaryFields` are the matching columns in the aggregate tracker, used by
+       * the reconciliation dialog to line the mapped counts up against the
+       * reported source of truth.                                               */
       const PROGRAMS = [
-        { id: "housing_development", label: "Development",          F: DEV_FIELDS,   color: BRAND.raleighGreen },
-        { id: "other_housing_impact",label: "Other housing impact", F: OTHER_FIELDS, color: BRAND.amber },
-        { id: "homeowner_rehabs",    label: "Homeowner rehab",      F: REHAB_FIELDS, color: BRAND.teal },
-        { id: "homebuyer_assistance",label: "Homebuyer assistance", F: HBA_FIELDS,   color: BRAND.navy },
+        { id: "housing_development", label: "Development",          F: DEV_FIELDS,   color: BRAND.raleighGreen,
+          summaryFields: ["Housing_Development_New_Construction", "Housing_Development_Preservation"] },
+        { id: "other_housing_impact",label: "Other housing impact", F: OTHER_FIELDS, color: BRAND.amber,
+          summaryFields: ["Other_Housing_Impact"] },
+        { id: "homeowner_rehabs",    label: "Homeowner rehab",      F: REHAB_FIELDS, color: BRAND.teal,
+          summaryFields: ["Homeowner_Rehabs"] },
+        { id: "homebuyer_assistance",label: "Homebuyer assistance", F: HBA_FIELDS,   color: BRAND.navy,
+          summaryFields: ["Homebuyer_Assistance"] },
       ];
       const records = [];
-      const untagged = {};
+      const untagged = {};        // records with no council district (excluded below)
+      const untaggedUnits = {};   // units those excluded records carried
+      const pipelineUnits = {};   // of the units counted, how many are not yet complete
+      const blankUnitRecords = {};// records with no Total_Units, counted as 1 each
       for (const p of PROGRAMS) {
-        untagged[p.id] = 0;
+        untagged[p.id] = 0; untaggedUnits[p.id] = 0; pipelineUnits[p.id] = 0; blankUnitRecords[p.id] = 0;
         const layer = housing[p.id];
         const q = layer.createQuery();
         q.where = "1=1"; q.returnGeometry = false;
-        q.outFields = [p.F.council, p.F.ncod, p.F.totalUnits, p.F.fiscalYear];
+        q.outFields = [p.F.council, p.F.ncod, p.F.totalUnits, p.F.fiscalYear, p.F.projectStatus].filter(Boolean);
         const res = await layer.queryFeatures(q);
         res.features.forEach(f => {
           const a = f.attributes;
           const d = clean(a[p.F.council]);
-          if (d) records.push({ program: p.id, district: d, ncod: clean(a[p.F.ncod]) || "", fiscalYear: clean(a[p.F.fiscalYear]), units: num(a[p.F.totalUnits]) || 1 });
-          else untagged[p.id]++;
+          const rawUnits = num(a[p.F.totalUnits]);
+          const units = rawUnits || 1;
+          if (!rawUnits) blankUnitRecords[p.id]++;
+          if (d) {
+            records.push({ program: p.id, district: d, ncod: clean(a[p.F.ncod]) || "", fiscalYear: clean(a[p.F.fiscalYear]), units });
+            if (p.F.projectStatus && clean(a[p.F.projectStatus]) !== "Complete") pipelineUnits[p.id] += units;
+          } else {
+            untagged[p.id]++; untaggedUnits[p.id] += units;
+          }
         });
       }
       const distSel = document.getElementById("distSel");
@@ -1490,7 +1723,11 @@
       function renderGeography(dist, ncod) {
         const rows2 = records.filter(r => (!dist || r.district === dist) && (!ncod || r.ncod === ncod));
         const unitsOf = (id) => rows2.filter(r => r.program === id).reduce((s, r) => s + r.units, 0);
-        const kpi = [["Total units (mapped)", rows2.reduce((s, r) => s + r.units, 0)], ...PROGRAMS.map(p => [p.label, unitsOf(p.id)])];
+        /* Every tile is mapped-point derived and includes pipeline, so each is
+         * labelled "(mapped)" — the tiles are read on their own, away from the
+         * caveat above, and were being mistaken for the citywide totals.       */
+        const kpi = [["Total units (mapped)", rows2.reduce((s, r) => s + r.units, 0)],
+                     ...PROGRAMS.map(p => [`${p.label} (mapped)`, unitsOf(p.id)])];
         document.getElementById("distKpis").innerHTML = kpi.map(([l, v]) =>
           `<div class="kpi"><div class="num">${v.toLocaleString()}</div><div class="lbl">${l}</div></div>`).join("");
 
@@ -1512,6 +1749,88 @@
             plugins: { legend: { position: "bottom" } } },
         });
       }
+
+      /* ---- reconciliation dialog ------------------------------------------ *
+       * Quantifies, per program, why the mapped tiles differ from the reported
+       * citywide totals. Everything is derived from data already on the page:
+       * `combined` holds the tracker's year-end rows, `records`/`untaggedUnits`/
+       * `pipelineUnits` come from the point layers queried above.
+       *
+       * The identity being shown is:
+       *   completed & mapped = mapped shown − pipeline included
+       *   not in map         = reported − completed & mapped
+       * "Not in map" is a residual, so it absorbs every remaining cause at once
+       * (fiscal years the detail sheets don't cover, records that never
+       * geocoded, de-identified rows dropped at publish). It is labelled as a
+       * remainder rather than pretending each of those is measured separately. */
+      (function buildReconciliation() {
+        const reportedOf = (p) => combined.reduce(
+          (s, r) => s + p.summaryFields.reduce((t, f) => t + (num(r[f]) || 0), 0), 0);
+        const unitsMapped = (id) => records.filter(r => r.program === id).reduce((s, r) => s + r.units, 0);
+        const fmtDelta = (v) => v === 0 ? "0"
+          : `<span class="${v > 0 ? "recon-pos" : "recon-neg"}">${v > 0 ? "+" : "−"}${Math.abs(v).toLocaleString()}</span>`;
+        /* The remainder can go negative — that means MORE units are mapped as
+         * complete than the tracker reports, which is a discrepancy rather than
+         * a coverage gap, so it is flagged instead of shown as a bare minus.   */
+        const fmtRemainder = (v) => v < 0
+          ? `<span class="recon-neg">−${Math.abs(v).toLocaleString()} ⚠</span>`
+          : v.toLocaleString();
+
+        let body = "", anyBlank = 0, anyUntagged = 0;
+        for (const p of PROGRAMS) {
+          const reported = reportedOf(p);
+          const mapped = unitsMapped(p.id);
+          const pipe = pipelineUnits[p.id];
+          const completedMapped = mapped - pipe;
+          const notInMap = reported - completedMapped;
+          anyBlank += blankUnitRecords[p.id];
+          anyUntagged += untagged[p.id];
+          body += `<tr>
+            <td>${p.label}</td>
+            <td>${reported.toLocaleString()}</td>
+            <td>${mapped.toLocaleString()}</td>
+            <td>${fmtDelta(mapped - reported)}</td>
+            <td>${pipe.toLocaleString()}</td>
+            <td>${completedMapped.toLocaleString()}</td>
+            <td>${fmtRemainder(notInMap)}</td>
+            <td>${untagged[p.id].toLocaleString()} (${untaggedUnits[p.id].toLocaleString()})</td>
+          </tr>`;
+        }
+
+        document.getElementById("reconTableWrap").innerHTML = `
+          <table class="recon-table">
+            <thead><tr>
+              <th>Program</th>
+              <th>Reported (tracker)</th>
+              <th>Mapped (shown here)</th>
+              <th>Difference</th>
+              <th>of which pipeline</th>
+              <th>Completed &amp; mapped</th>
+              <th>Reported, not on the map</th>
+              <th>Excluded: no district<br><span style="font-weight:400;">records (units)</span></th>
+            </tr></thead>
+            <tbody>${body}</tbody>
+          </table>`;
+
+        const notes = [
+          `<strong>Reported (tracker)</strong> is every fiscal year the summary table reports as complete. <strong>Mapped</strong> counts points in the layers, completed and pipeline together — which is why Development reads higher than reported while the resident-level programs read lower.`,
+          `<strong>Excluded: no district</strong> are points whose Council District is blank or "None", so they fall out of a panel organised by district. ${anyUntagged.toLocaleString()} record(s) in total.`,
+          `<strong>Reported, not on the map</strong> is the remainder once pipeline is removed. It covers fiscal years the detail sheets do not reach back to, records that could not be geocoded, and rows dropped when the public de-identified layers were built.`,
+          `A <span class="recon-neg">negative remainder (⚠)</span> is the opposite problem: the map holds <em>more</em> completed units than the tracker reports for that program. That is a genuine discrepancy between the detail sheet and the summary table, not a coverage gap, and is worth reconciling at the source.`,
+        ];
+        if (anyBlank) notes.push(`${anyBlank.toLocaleString()} record(s) carry no unit count and are counted as 1 unit each.`);
+        document.getElementById("reconNotes").innerHTML = notes.join("<br><br>");
+      })();
+
+      (function wireReconciliationDialog() {
+        const overlay = document.getElementById("reconOverlay");
+        const open = () => overlay.classList.add("open");
+        const close = () => overlay.classList.remove("open");
+        document.getElementById("reconOpen").addEventListener("click", open);
+        document.getElementById("reconClose").addEventListener("click", close);
+        overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+      })();
 
       /* keep the geography selectors + URL in sync (single page) */
       let syncing = false;
@@ -1547,7 +1866,7 @@
           "homeowner_rehabs": "Home Repair",
           "homebuyer_assistance": "Homebuyer Assistance"
         };
-        let fundingChart, fundingYearChart, fundingAMIChart;
+        let fundingYearChart, fundingAMIChart;
 
         function initProjectTypeDropdown() {
           fundingProjectTypeSel.innerHTML = '<option value="">All types</option>' +
@@ -1555,7 +1874,6 @@
         }
 
         async function renderFundingCharts(selectedLayerId) {
-          const bySource = {};
           const byYear = {};
           const byAMI = {
             "≤20% AMI": 0,
@@ -1568,7 +1886,6 @@
             "Unrestricted": 0,
             "Homeownership": 0
           };
-          const missingSource = {};   // records per layer with no Funding_Source
           const missingUnits = {};    // records per layer with no Total_Units (counted as 1 in the pie chart)
           console.log("Rendering funding charts - layer:", selectedLayerId);
 
@@ -1600,20 +1917,16 @@
             const res = await layer.queryFeatures(q);
             console.log(`Features from ${layerId}:`, res.features.length);
 
-            missingSource[layerId] = 0;
             missingUnits[layerId] = 0;
 
             res.features.forEach(f => {
-              const rawSource = clean(f.attributes[F.fundingSource]);
-              if (!rawSource) missingSource[layerId]++;
-              const source = rawSource || "Not specified";
+              /* byYear collapses these buckets into a per-year total, so `source`
+               * is only an intermediate key — it is no longer shown anywhere.   */
+              const source = clean(f.attributes[F.fundingSource]) || "Not specified";
               const rawUnits = num(f.attributes[F.totalUnits]);
               if (!rawUnits) missingUnits[layerId]++;
-              const units = rawUnits || 0;
               const amount = num(f.attributes[F.loanAmount]) || 0;
               const fy = clean(f.attributes[F.fiscalYear]) || "Unknown";
-
-              bySource[source] = (bySource[source] || 0) + units;
 
               if (!byYear[fy]) byYear[fy] = {};
               byYear[fy][source] = (byYear[fy][source] || 0) + amount;
@@ -1632,42 +1945,16 @@
             });
           }
 
-          console.log("Aggregated data by source:", bySource);
           console.log("Aggregated data by year:", byYear);
           console.log("Aggregated data by AMI:", byAMI);
 
           // Data-quality caveat: how many records were missing key fields
-          const sourceGaps = Object.entries(missingSource).filter(([, n]) => n > 0)
-            .map(([id, n]) => `${n} ${FUNDING_LAYERS_MAP[id].toLowerCase()}`).join(", ");
           const unitGaps = Object.entries(missingUnits).filter(([, n]) => n > 0)
             .map(([id, n]) => `${n} ${FUNDING_LAYERS_MAP[id].toLowerCase()}`).join(", ");
           const caveatParts = [];
-          if (sourceGaps) caveatParts.push(`No Funding Source recorded (shown as "Not specified"): ${sourceGaps}.`);
           if (unitGaps) caveatParts.push(`No Total Units recorded (counted as 0, not excluded): ${unitGaps}.`);
           caveatParts.push(`The unit totals below reflect only projects with Total Units recorded — they are not a count of all projects, and will undercount true production wherever Total Units is blank.`);
           document.getElementById("fundingCaveat").innerHTML = caveatParts.join(" ");
-
-          // Render pie chart (units by source)
-          const labels = Object.keys(bySource).sort();
-          const data = labels.map(l => bySource[l]);
-          const colors = [BRAND.raleighGreen, BRAND.leafGreen, BRAND.chartreuse, BRAND.teal, BRAND.midGreen, BRAND.amber, "#99bbff", BRAND.navy];
-
-          if (fundingChart) fundingChart.destroy();
-          fundingChart = new Chart(document.getElementById("fundingBySource"), {
-            type: "pie",
-            data: {
-              labels: labels,
-              datasets: [{
-                data: data,
-                backgroundColor: labels.map((_, i) => colors[i % colors.length])
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "bottom" } }
-            }
-          });
 
           // Render bar chart (total funding by year)
           const yearLabels = Object.keys(byYear).sort();
@@ -1689,8 +1976,22 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              scales: { y: { beginAtZero: true } },
-              plugins: { legend: { position: "bottom" } }
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  /* yearTotals are already divided down to $ millions, so bare
+                   * ticks read as "100" with no way to tell $100 from $100M.
+                   * Label the axis and stamp the unit onto every tick.        */
+                  title: { display: true, text: "City funding (US dollars)" },
+                  ticks: { callback: (v) => v === 0 ? "$0" : "$" + (Number.isInteger(v) ? v : Number(v).toFixed(1)) + "M" },
+                },
+              },
+              plugins: {
+                /* One dataset, and the card heading already says what it is. */
+                legend: { display: false },
+                /* Hovering a bar showed just "100" — give the exact dollars. */
+                tooltip: { callbacks: { label: (c) => "Total funding: " + fmtMoney(c.parsed.y * 1e6) } },
+              },
             }
           });
 
@@ -1778,7 +2079,14 @@
           byConstStatus[st] = (byConstStatus[st] || 0) + units;
         });
 
-        const statusLabels = Object.keys(byConstStatus).sort();
+        /* Construction sequence, not alphabetical — pre-construction comes before
+         * under construction. (Sorting alphabetically happened to give the same
+         * result, but only by luck: a status like "Not specified" would sort in
+         * ahead of both.) Anything outside this list follows, alphabetically.   */
+        const STATUS_ORDER = ["Pre Construction", "Under Construction"];
+        const statusRank = (s) => { const i = STATUS_ORDER.indexOf(s); return i === -1 ? STATUS_ORDER.length : i; };
+        const statusLabels = Object.keys(byConstStatus)
+          .sort((a, b) => (statusRank(a) - statusRank(b)) || a.localeCompare(b));
         const statusData = statusLabels.map(l => byConstStatus[l]);
         const statusColors = [BRAND.amber, BRAND.teal, BRAND.rust, BRAND.navy, BRAND.leafGreen];
 
@@ -1790,6 +2098,11 @@
           },
           options: {
             responsive: true, maintainAspectRatio: false, cutout: "65%",
+            /* Arcs are drawn clockwise from `rotation`, so the default (0 = 12
+             * o'clock) puts the FIRST slice on the right. Starting at 6 o'clock
+             * sweeps the first slice up the left side instead, which reads
+             * left-to-right in the same order as the legend.                    */
+            rotation: 180,
             plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } }
           }
         });

@@ -94,7 +94,7 @@ export const UI = {
   /* Replacement copy from the requirements doc ("These" -> "The" per Mary). */
   citywideCaveatHtml:
     "The data feeding this dashboard and the below tables are updated quarterly. " +
-    "The latest update reflects the Housing and Community Development departments " +
+    "The latest update reflects the Housing and Community Development Department's " +
     "production data through the end of Quarter 4 of Fiscal Year 2025-2026 (June 30, 2026).",
 
   /* Map sidebar "Data notes". The de-identification language is dropped: the

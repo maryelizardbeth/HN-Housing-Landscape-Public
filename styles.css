@@ -42,6 +42,48 @@ body {
   box-shadow: 0 12px 40px rgba(0,0,0,.35); padding: 32px 32px 20px;
   border-top: 8px solid var(--raleigh-green);
 }
+/* 2020 Bond section: one status filter governs the project-level widgets. Cards
+   whose source has no complete/pipeline dimension are badged so it is obvious
+   they are not responding to the filter rather than appearing broken. */
+.bond-filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--green-tint-alt); border: 1px solid var(--green-tint);
+  border-radius: 6px; padding: 10px 14px; margin-top: 4px;
+}
+.bond-filter-bar label { font-size: .9rem; }
+.bond-filter-bar select { padding: 6px 8px; font: inherit; font-size: .85rem; border: 1px solid var(--border); border-radius: 4px; }
+.bond-filter-note { font-size: .78rem; color: #666; flex: 1 1 260px; }
+.status-badge {
+  display: inline-block; vertical-align: middle; margin-left: 6px;
+  font-size: .68rem; font-weight: 600; letter-spacing: .02em; text-transform: uppercase;
+  color: #666; background: var(--light-fill); border: 1px solid var(--border);
+  border-radius: 10px; padding: 2px 8px;
+}
+.status-badge-live { color: var(--raleigh-green); background: var(--green-tint); border-color: var(--leaf-green); }
+
+/* Reconciliation dialog — same shell as the welcome modal, but wider (it holds a
+   table) and independent of the welcome flow's step/panel logic. */
+.info-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(20, 30, 20, .55);
+  z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+}
+.info-overlay.open { display: flex; }
+.info-modal {
+  position: relative; background: var(--white); border-radius: 10px;
+  width: 100%; max-width: 900px; max-height: 85vh; overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35); padding: 32px 32px 24px;
+  border-top: 8px solid var(--raleigh-green);
+}
+.info-modal h2 { color: var(--raleigh-green); font-size: 1.2rem; margin: 0 0 12px; }
+.info-modal p { margin: 0 0 14px; line-height: 1.5; font-size: .92rem; }
+.recon-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.recon-table th, .recon-table td { padding: 7px 9px; border-bottom: 1px solid var(--border); text-align: right; }
+.recon-table th:first-child, .recon-table td:first-child { text-align: left; }
+.recon-table thead th { background: var(--green-tint-alt); color: var(--raleigh-green); font-weight: 600; }
+.recon-table tbody tr:last-child td { border-bottom: none; }
+.recon-table .recon-pos { color: #0D6937; }
+.recon-table .recon-neg { color: #A8322D; }
+
 .welcome-close {
   position: absolute; top: 14px; right: 16px; border: none; background: none;
   font-size: 1.6rem; line-height: 1; color: #888; cursor: pointer; padding: 4px 8px;
@@ -142,6 +184,9 @@ arcgis-map { position: absolute; inset: 0; }
   border: 1px solid var(--border); border-radius: 4px; background: var(--white); color: var(--body-text);
 }
 .checks label { display: flex; align-items: center; gap: 8px; font-size: .85rem; margin-bottom: 6px; cursor: pointer; }
+/* any/all combine mode sits under the funding-source checkboxes it governs */
+.fund-mode { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.fund-mode label { font-size: .8rem; margin-bottom: 4px; }
 .btn-row { display: flex; gap: 8px; margin-top: 6px; }
 button.btn {
   font: inherit; font-weight: 600; font-size: .82rem; cursor: pointer;
