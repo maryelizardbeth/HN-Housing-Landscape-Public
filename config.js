@@ -91,11 +91,13 @@ export const UI = {
    * still show the City contribution, the funding breakdown, and the AMI bar. */
   showPipelineFinancials: false,
 
-  /* Replacement copy from the requirements doc ("These" -> "The" per Mary). */
+  /* Replacement copy from the requirements doc ("These" -> "The" per Mary).
+   * Updated 2026-07-30 leadership call: adds the FY2015-2016 start date, since
+   * the dashboard covers that whole span, not just the current fiscal year. */
   citywideCaveatHtml:
     "The data feeding this dashboard and the below tables are updated quarterly. " +
     "The latest update reflects the Housing and Community Development Department's " +
-    "production data through the end of Quarter 4 of Fiscal Year 2025-2026 (June 30, 2026).",
+    "production data from FY 2015-2016 through the end of Quarter 4 Fiscal Year 2025-2026 (June 30, 2026).",
 
   /* Map sidebar "Data notes". The de-identification language is dropped: the
    * three de-identified layers are no longer on the External map, so it would

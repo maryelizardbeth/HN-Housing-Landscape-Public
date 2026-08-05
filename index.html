@@ -363,25 +363,15 @@
           <h3 style="margin:0 0 12px 0;">Total funding by year</h3>
           <div class="chart-box" style="height: 300px;"><canvas id="fundingByYear"></canvas></div>
         </div>
-        <div class="card">
-          <h3 style="margin:0 0 12px 0;">Units by income level</h3>
-          <div class="chart-box" style="height: 300px;"><canvas id="fundingByAMI"></canvas></div>
-        </div>
       </div>
 
       <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:30px 0 4px;border-top:1px solid var(--border);padding-top:20px;">Housing pipeline</h2>
       <div><span class="src-badge">Source: City Housing Development layer (Project_Status = Pipeline)</span></div>
       <div class="caveat" id="pipelineCaveat" style="margin-top:8px;"></div>
       <div class="kpi-row" id="pipelineKpis" style="margin-top:14px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 4fr;gap:18px;align-items:stretch;">
-        <div class="card" style="min-width:0;">
-          <h3 style="margin:0 0 12px 0;">Pipeline units by construction status</h3>
-          <div class="chart-box" style="height: 200px;"><canvas id="pipelineStatusChart"></canvas></div>
-        </div>
-        <div class="card" style="min-width:0;">
-          <h3 style="margin:0 0 12px 0;">Pipeline projects</h3>
-          <div class="table-scroll" style="max-height:280px;overflow-x:auto;"><table class="data-table" id="pipelineTable"></table></div>
-        </div>
+      <div class="card" style="min-width:0;">
+        <h3 style="margin:0 0 12px 0;">Pipeline projects</h3>
+        <div class="table-scroll" style="max-height:280px;overflow-x:auto;"><table class="data-table" id="pipelineTable"></table></div>
       </div>
 
       <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:30px 0 4px;border-top:1px solid var(--border);padding-top:20px;">City housing by geography</h2>
@@ -398,9 +388,13 @@
         the de-identified layers exclude any records that could not be geocoded, and "units" are counted per point rather
         than as the tracker reports them.
       </div>
+      <!-- Reconciliation dialog trigger, hidden for now. The dialog and its
+           live calculation are still in place further down; restore this button
+           to switch it back on — nothing else needs changing.
       <div style="margin-top:8px;">
         <button type="button" class="btn secondary" id="reconOpen">More info — why these differ from the citywide totals</button>
       </div>
+      -->
       <div class="kpi-row" id="distKpis" style="margin-top:14px;"></div>
       <div class="card wide">
         <h3 id="distChartTitle">Units by district and program</h3>
@@ -692,10 +686,15 @@
         const fsText = (fsRaw && fsRaw.toLowerCase() === "multiple" && fundPairs.length)
           ? fundPairs.map(([, lbl]) => lbl).join(" + ")
           : (fsRaw || "—");
-        h += row("Funding source", fsText);
         // External: pipeline projects show funding SOURCE + units only.
         // Internal: dollar amounts and the AMI bar are shown for pipeline too.
         const showFin = isComplete || UI.showPipelineFinancials;
+        /* "Funding sources" below (itemized, with $ amounts) names every source
+         * this row would — it's a strict superset once it's showing, so this
+         * summary line was repeating the same source(s) a second time. Only
+         * shown when that breakdown isn't rendering: pipeline on External
+         * (no $ amounts there by design) or when no field has an amount > 0. */
+        if (!showFin || !fundPairs.length) h += row("Funding source", fsText);
         if (showFin) {
           h += row("Total City Contribution", fmtMoney(a[F.loanAmount]));
           if (funds.length) h += row("Funding sources", funds.join("<br>"));
@@ -897,6 +896,9 @@
           renderer: makeRenderer(rc), labelingInfo: labelInfo(rc),
           opacity: rc.kind === "choropleth" ? 0.72 : 1,
           popupEnabled: !!makePopup(rc), popupTemplate: makePopup(rc) || undefined, outFields: ["*"],
+          /* Only set when the config overrides it (e.g. ncods) — everything else
+           * keeps inheriting whatever scale range the source service publishes. */
+          ...(rc.minScale != null ? { minScale: rc.minScale } : {}),
         });
         viewEl.map.add(fl, 0);
         cb.addEventListener("change", () => {
@@ -1297,9 +1299,11 @@
 
       const sumCat = (field) => yearRows.reduce((s, r) => s + num(r[field]), 0);
       const totalAll = yearRows.reduce((s, r) => s + num(r[SF.total]), 0);
-      const kpis = [["Total completed", totalAll], ...CATS.map(c => [c.label, sumCat(c.field)])];
-      document.getElementById("kpis").innerHTML = kpis.map(([lbl, n]) =>
-        `<div class="kpi"><div class="num">${n.toLocaleString()}</div><div class="lbl">${lbl}</div></div>`).join("");
+      /* Only "Other housing impact" carries a note (a methodology-change caveat);
+       * every other tile's `note` is undefined and gets no title attribute.      */
+      const kpis = [["Total completed", totalAll, null], ...CATS.map(c => [c.label, sumCat(c.field), c.note || null])];
+      document.getElementById("kpis").innerHTML = kpis.map(([lbl, n, note]) =>
+        `<div class="kpi"${note ? ` title="${note.replace(/"/g, "&quot;")}"` : ""}><div class="num">${n.toLocaleString()}</div><div class="lbl">${lbl}</div></div>`).join("");
 
       // External replaces this with fixed approved copy; Internal keeps the
       // dynamic version that reports the live Date_updated from the source table.
@@ -1835,9 +1839,14 @@
 
       (function wireReconciliationDialog() {
         const overlay = document.getElementById("reconOverlay");
+        /* The trigger button is currently commented out in the markup, so bail
+         * rather than throwing on a missing element. Restoring the button is all
+         * that is needed to bring the dialog back.                             */
+        const openBtn = document.getElementById("reconOpen");
+        if (!openBtn) return;
         const open = () => overlay.classList.add("open");
         const close = () => overlay.classList.remove("open");
-        document.getElementById("reconOpen").addEventListener("click", open);
+        openBtn.addEventListener("click", open);
         document.getElementById("reconClose").addEventListener("click", close);
         overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
         document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
@@ -1877,7 +1886,7 @@
           "homeowner_rehabs": "Home Repair",
           "homebuyer_assistance": "Homebuyer Assistance"
         };
-        let fundingYearChart, fundingAMIChart;
+        let fundingYearChart;
 
         function initProjectTypeDropdown() {
           fundingProjectTypeSel.innerHTML = '<option value="">All types</option>' +
@@ -1886,17 +1895,6 @@
 
         async function renderFundingCharts(selectedLayerId) {
           const byYear = {};
-          const byAMI = {
-            "≤20% AMI": 0,
-            "30% AMI": 0,
-            "40% AMI": 0,
-            "50% AMI": 0,
-            "60% AMI": 0,
-            "70% AMI": 0,
-            "80% AMI": 0,
-            "Unrestricted": 0,
-            "Homeownership": 0
-          };
           const missingUnits = {};    // records per layer with no Total_Units (counted as 1 in the pie chart)
           console.log("Rendering funding charts - layer:", selectedLayerId);
 
@@ -1911,19 +1909,10 @@
 
             const F = layerId === "housing_development" ? DEV_FIELDS : (layerId === "homeowner_rehabs" ? REHAB_FIELDS : HBA_FIELDS);
 
-            // DEV_FIELDS.amiBands is an array of [field, label, color] tuples;
-            // REHAB_FIELDS/HBA_FIELDS.amiBands is a plain array of field-name strings.
-            const amiFieldNames = F.amiBands
-              ? F.amiBands.map(band => Array.isArray(band) ? band[0] : band)
-              : null;
-
             const q = layer.createQuery();
             q.where = "1=1";
             q.returnGeometry = false;
             q.outFields = [F.fundingSource, F.totalUnits, F.loanAmount, F.fiscalYear];
-            if (amiFieldNames) q.outFields.push(...amiFieldNames);
-            if (F.unrestricted) q.outFields.push(F.unrestricted);
-            if (F.homeownership) q.outFields.push(F.homeownership);
 
             const res = await layer.queryFeatures(q);
             console.log(`Features from ${layerId}:`, res.features.length);
@@ -1941,23 +1930,10 @@
 
               if (!byYear[fy]) byYear[fy] = {};
               byYear[fy][source] = (byYear[fy][source] || 0) + amount;
-
-              if (amiFieldNames) {
-                byAMI["≤20% AMI"] += num(f.attributes[amiFieldNames[0]]) || 0;
-                byAMI["30% AMI"] += num(f.attributes[amiFieldNames[1]]) || 0;
-                byAMI["40% AMI"] += num(f.attributes[amiFieldNames[2]]) || 0;
-                byAMI["50% AMI"] += num(f.attributes[amiFieldNames[3]]) || 0;
-                byAMI["60% AMI"] += num(f.attributes[amiFieldNames[4]]) || 0;
-                byAMI["70% AMI"] += num(f.attributes[amiFieldNames[5]]) || 0;
-                byAMI["80% AMI"] += num(f.attributes[amiFieldNames[6]]) || 0;
-              }
-              if (F.unrestricted) byAMI["Unrestricted"] += num(f.attributes[F.unrestricted]) || 0;
-              if (F.homeownership) byAMI["Homeownership"] += num(f.attributes[F.homeownership]) || 0;
             });
           }
 
           console.log("Aggregated data by year:", byYear);
-          console.log("Aggregated data by AMI:", byAMI);
 
           // Data-quality caveat: how many records were missing key fields
           const unitGaps = Object.entries(missingUnits).filter(([, n]) => n > 0)
@@ -1968,7 +1944,11 @@
           document.getElementById("fundingCaveat").innerHTML = caveatParts.join(" ");
 
           // Render bar chart (total funding by year)
-          const yearLabels = Object.keys(byYear).sort();
+          // FY 2026-2027 has no committed funding recorded yet (0-value bar was
+          // confusing next to real years) -- hidden per leadership call
+          // 2026-07-30, to be added back once Q1 FY27 is reported.
+          const HIDE_FISCAL_YEARS = new Set(["2026-2027"]);
+          const yearLabels = Object.keys(byYear).filter(y => !HIDE_FISCAL_YEARS.has(y)).sort();
           const yearTotals = yearLabels.map(year =>
             Object.values(byYear[year]).reduce((sum, val) => sum + val, 0) / 1000000
           );
@@ -2003,31 +1983,6 @@
                 /* Hovering a bar showed just "100" — give the exact dollars. */
                 tooltip: { callbacks: { label: (c) => "Total funding: " + fmtMoney(c.parsed.y * 1e6) } },
               },
-            }
-          });
-
-          // Render horizontal bar chart (units by AMI band)
-          const amiLabels = Object.keys(byAMI);
-          const amiData = Object.values(byAMI);
-          const amiColors = [BRAND.navy, BRAND.teal, BRAND.leafGreen, BRAND.chartreuse, BRAND.amber, BRAND.rust, "#99bbff", BRAND.raleighGreen, BRAND.midGreen];
-
-          if (fundingAMIChart) fundingAMIChart.destroy();
-          fundingAMIChart = new Chart(document.getElementById("fundingByAMI"), {
-            type: "bar",
-            data: {
-              labels: amiLabels,
-              datasets: [{
-                label: "Units",
-                data: amiData,
-                backgroundColor: amiColors.slice(0, amiLabels.length)
-              }]
-            },
-            options: {
-              indexAxis: "y",
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: { x: { beginAtZero: true } },
-              plugins: { legend: { display: false } }
             }
           });
         }
@@ -2081,42 +2036,6 @@
           <div class="kpi"><div class="num">${pctPipeline.toFixed(1)}%</div><div class="lbl">Of all units are in the pipeline</div></div>
           <div class="kpi"><div class="num">${totalUnitsPipeline.toLocaleString()}</div><div class="lbl">Total pipeline units</div></div>
           <div class="kpi"><div class="num">${pipelineRows.length.toLocaleString()}</div><div class="lbl">Pipeline projects</div></div>`;
-
-        // Breakdown of pipeline units by construction status (Pre Construction vs Under Construction)
-        const byConstStatus = {};
-        pipelineRows.forEach(a => {
-          const st = clean(a[F.status]) || "Not specified";
-          const units = num(a[F.totalUnits]) || 0;
-          byConstStatus[st] = (byConstStatus[st] || 0) + units;
-        });
-
-        /* Construction sequence, not alphabetical — pre-construction comes before
-         * under construction. (Sorting alphabetically happened to give the same
-         * result, but only by luck: a status like "Not specified" would sort in
-         * ahead of both.) Anything outside this list follows, alphabetically.   */
-        const STATUS_ORDER = ["Pre Construction", "Under Construction"];
-        const statusRank = (s) => { const i = STATUS_ORDER.indexOf(s); return i === -1 ? STATUS_ORDER.length : i; };
-        const statusLabels = Object.keys(byConstStatus)
-          .sort((a, b) => (statusRank(a) - statusRank(b)) || a.localeCompare(b));
-        const statusData = statusLabels.map(l => byConstStatus[l]);
-        const statusColors = [BRAND.amber, BRAND.teal, BRAND.rust, BRAND.navy, BRAND.leafGreen];
-
-        new Chart(document.getElementById("pipelineStatusChart"), {
-          type: "doughnut",
-          data: {
-            labels: statusLabels,
-            datasets: [{ data: statusData, backgroundColor: statusLabels.map((_, i) => statusColors[i % statusColors.length]) }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, cutout: "65%",
-            /* Arcs are drawn clockwise from `rotation`, so the default (0 = 12
-             * o'clock) puts the FIRST slice on the right. Starting at 6 o'clock
-             * sweeps the first slice up the left side instead, which reads
-             * left-to-right in the same order as the legend.                    */
-            rotation: 180,
-            plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } }
-          }
-        });
 
         // Pipeline projects table
         const sortedPipeline = pipelineRows.slice().sort((a, b) => {

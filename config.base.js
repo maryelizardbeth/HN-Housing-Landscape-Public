@@ -79,7 +79,8 @@ export const SUMMARY_TABLE = {
     { field: "Housing_Development_Preservation",     label: "Preserved",             color: BRAND.leafGreen },
     { field: "Homeowner_Rehabs",                     label: "Home repair",           color: BRAND.chartreuse },
     { field: "Homebuyer_Assistance",                 label: "Homebuyer assistance",  color: BRAND.teal },
-    { field: "Other_Housing_Impact",                 label: "Other housing impact",  color: BRAND.amber },
+    { field: "Other_Housing_Impact",                 label: "Other housing impact",  color: BRAND.amber,
+      note: "The City previously counted some units from a community program that we no longer track in the new methodology." },
   ],
 };
 
@@ -241,9 +242,13 @@ export const REFERENCE_LAYERS = [
     kind: "boundary", color: "#01426A", labelField: "COUNCIL_DIST", visible: true,
   },
   {
+    /* The source service publishes minScale: 76800 (only draws once zoomed in
+     * closer than ~1:76,800) — the app opens around 1:288,895, so checking this
+     * box did nothing and looked broken. Only 26 polygons citywide, so drawing
+     * them at every zoom isn't cluttered; overridden to 0 below. */
     id: "ncods", title: "Neighborhood Conservation Overlay Districts (NCODs)", type: "feature",
     url: "https://maps.raleighnc.gov/arcgis/rest/services/Planning/Overlays/MapServer/9",
-    kind: "boundary", color: "#189ABC", labelField: "OLAY_NAME", visible: false,
+    kind: "boundary", color: "#189ABC", labelField: "OLAY_NAME", visible: false, minScale: 0,
   },
   {
     id: "transit_routes", title: "Transit Routes (GoRaleigh)", type: "feature",
