@@ -190,7 +190,7 @@ export const HUD_LAYERS_BASE = [
     id: "hud_public_housing",
     /* Must stay identical to this layer's legend entry in index.html — the same
      * string is the filter toggle label, so a mismatch reads as two layers.    */
-    title: "HUD Public Housing (incl. RHA)",
+    title: "HUD Public Housing properties",
     url: `${HUD_BASE}/Public_Housing_Developments/FeatureServer/0`,
     where: WAKE, style: "square", color: "#01426A",
     /* Unit counts are deliberately off this popup: `units` is null so no "Units"
@@ -201,7 +201,7 @@ export const HUD_LAYERS_BASE = [
   },
   {
     id: "hud_mf_assisted",
-    title: "Multifamily Assisted (Section 8 / 202 / 811)",
+    title: "Multifamily Assisted (Section 8, 202, 811)",
     url: `${HUD_BASE}/Multifamily_Properties_Assisted/FeatureServer/0`,
     where: WAKE, style: "diamond", color: "#189ABC",
     /* Unit counts are deliberately off this popup as well — neither assisted
@@ -212,7 +212,7 @@ export const HUD_LAYERS_BASE = [
   },
   {
     id: "hud_lihtc",
-    title: "LIHTC Properties (tax-credit)",
+    title: "Low Income Housing Tax Credit properties (LIHTC)",
     url: `${HUD_BASE}/LIHTC/FeatureServer/0`,
     where: "PROJ_ST='NC' AND CURCNTY_NM LIKE 'Wake%'", style: "triangle", color: "#FBAE40",
     name: ["PROJECT"], addr: ["PROJ_ADD", "PROJ_CTY"], units: null,

@@ -146,6 +146,7 @@
           <p>In the map section, you can find information on City-funded projects as well as non-City funded affordable housing, such as affordable housing that received federal funding.</p>
           <p class="info-subhead">Helpful information</p>
           <p>For the interactive map, units are counted as "Complete" once they have received a Certificate of Occupancy. Units in the "Pipeline" are units either under construction or in the pre-construction phase.</p>
+          <p>You may notice that City Housing Development constructed prior to 2025-2026 doesn't have quite as much information as the City Housing Development in the pipeline or completed in 2025-2026. Our methodology for tracking our housing production changed in FY 25-26. We are working on adding additional information on prior years in future iterations of this dashboard.</p>
         </div>
       </details>
     </div>
@@ -184,6 +185,7 @@
               </div>
             </div>
             <div class="checks" id="fFundingChecks"></div>
+            <div class="note" style="margin-top:6px;">This is only reflective of funding sources for the year 2025-2026. We are working on updating past years in future iterations of the dashboard.</div>
           </div>
           <div class="field">
             <label for="loanMinN">City funding — City of Raleigh loan ($)</label>
@@ -238,6 +240,7 @@
         <div class="panel-section">
           <h2>Subsidized / HUD housing</h2>
           <div class="checks" id="hudToggles"></div>
+          <div class="note" id="lihtcHint" style="display:none;">To see where the City has also supported LIHTC development, make sure to also select the "City Housing Development" layer above.</div>
           <div class="note">Non-City-funded subsidized housing from HUD (filtered to Wake County), including
           Raleigh Housing Authority (RHA) public housing. Distinct marker shapes; City projects are circles.</div>
         </div>
@@ -265,9 +268,9 @@
             <div class="legend-item"><span class="swatch" style="background:#189ABC;width:9px;height:9px;"></span> Homeowner rehab (approx.)</div>
             <div class="legend-item"><span class="swatch" style="background:#01426A;width:9px;height:9px;"></span> Homebuyer assistance (approx.)</div>
           </div>
-          <div class="legend-item" style="margin-top:8px;"><span style="color:#01426A;font-size:1rem;">■</span> HUD Public Housing (incl. RHA)</div>
-          <div class="legend-item"><span style="color:#189ABC;font-size:1rem;">◆</span> HUD Multifamily Assisted (Sec 8/202/811)</div>
-          <div class="legend-item"><span style="color:#FBAE40;font-size:1rem;">▲</span> LIHTC properties</div>
+          <div class="legend-item" style="margin-top:8px;"><span style="color:#01426A;font-size:1rem;">■</span> HUD Public Housing properties</div>
+          <div class="legend-item"><span style="color:#189ABC;font-size:1rem;">◆</span> Multifamily Assisted (Section 8, 202, 811)</div>
+          <div class="legend-item"><span style="color:#FBAE40;font-size:1rem;">▲</span> Low Income Housing Tax Credit properties (LIHTC)</div>
           <div class="legend-item"><span style="color:#99bbff;font-size:1rem;">✕</span> HUD-Insured Multifamily</div>
         </div>
 
@@ -374,6 +377,10 @@
         <div class="table-scroll" style="max-height:280px;overflow-x:auto;"><table class="data-table" id="pipelineTable"></table></div>
       </div>
 
+      <!-- Cut from External per 8.6.26 leadership call (Internal keeps it) --
+           see the MODE check near RESIDENT_ON_MAP for the removal + the
+           matching JS guard around the PROGRAMS/records setup below. -->
+      <div id="geographySection">
       <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:30px 0 4px;border-top:1px solid var(--border);padding-top:20px;">City housing by geography</h2>
       <div><span class="src-badge">Source: City Housing Development, Home Repair, Homebuyer Assistance, and Other Housing Impact layers (mapped point geometry)</span></div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 6px;">
@@ -399,6 +406,7 @@
       <div class="card wide">
         <h3 id="distChartTitle">Units by district and program</h3>
         <div class="chart-box"><canvas id="distChart"></canvas></div>
+      </div>
       </div>
 
     </div>
@@ -556,6 +564,11 @@
       // The three resident-program legend swatches describe layers that are not
       // on the External map at all.
       if (!RESIDENT_ON_MAP) document.getElementById("legendResident")?.remove();
+      // "City housing by geography" cut from External per 8.6.26 leadership call.
+      // Removed here (not just left empty) so the section's setup code further
+      // down can skip its layer queries entirely rather than fetching data for
+      // a section nobody will see.
+      if (MODE === "external") document.getElementById("geographySection")?.remove();
 
       const [FeatureLayer, VectorTileLayer, Basemap] = await Promise.all([
         $arcgis.import("@arcgis/core/layers/FeatureLayer.js"),
@@ -847,6 +860,7 @@
         return h + `</table></div>`;
       }
       const hudToggles = document.getElementById("hudToggles");
+      const lihtcHint = document.getElementById("lihtcHint");
       for (const hc of HUD_LAYERS) {
         const fl = new FeatureLayer({
           url: hc.url, title: hc.title, id: hc.id, visible: hc.visible,
@@ -857,7 +871,12 @@
         viewEl.map.add(fl);
         const label = document.createElement("label");
         const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = hc.visible;
-        cb.addEventListener("change", () => (fl.visible = cb.checked));
+        cb.addEventListener("change", () => {
+          fl.visible = cb.checked;
+          // City-funded LIHTC development lives on the City Housing Development
+          // layer, not this one -- point people there while LIHTC is checked.
+          if (hc.id === "hud_lihtc" && lihtcHint) lihtcHint.style.display = cb.checked ? "" : "none";
+        });
         label.append(cb, document.createTextNode(" " + hc.title));
         hudToggles.appendChild(label);
       }
@@ -1166,6 +1185,14 @@
       unitMaxN.addEventListener("change", () => { unitFromNumbers(); applyFilters(); });
       updateUnitUI();
 
+      /* Real implementation (if any) is installed by the "City housing by
+       * geography" setup further down — which only runs on Internal, since
+       * that section is cut from External. Declared here, always, as a no-op
+       * default so applyFilters (called on every filter change, including the
+       * very first page load) never has to know or care whether that section
+       * exists; it just calls this and the right thing happens either way.   */
+      let syncGeographyImpl = () => {};
+
       const sqlStr = (v) => "'" + String(v).replace(/'/g, "''") + "'";
       async function applyFilters() {
         const eq = { year: fYear.value, status: fStatus.value, devType: fDevType.value, district: fDistrict.value, ncod: fNcod.value };
@@ -1220,7 +1247,7 @@
         const total = results.reduce((s, n) => s + n, 0);
         document.getElementById("resultCount").innerHTML = `<strong>${total.toLocaleString()}</strong> city housing ${total === 1 ? RESULT_NOUN[0] : RESULT_NOUN[1]} shown on the map.`;
         // keep the dashboard geography panel in sync with the map's district filter
-        syncGeography(fDistrict.value, "");
+        syncGeographyImpl(fDistrict.value, "");
         writeUrl(fDistrict.value);
       }
       // Every filter applies instantly (no Apply button).
@@ -1683,7 +1710,11 @@
 
       /* =================================================================== *
        *  DISTRICT PANEL — aggregated from the mapped point layers (geometry)
+       *  Cut from External per 8.6.26 leadership call -- its HTML (#geography
+       *  Section) is already removed above; this skips the layer queries and
+       *  DOM writes that section would otherwise need, entirely, on External.
        * =================================================================== */
+      if (MODE !== "external") {
       /* `summaryFields` are the matching columns in the aggregate tracker, used by
        * the reconciliation dialog to line the mapped counts up against the
        * reported source of truth.                                               */
@@ -1852,16 +1883,18 @@
         document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
       })();
 
-      /* keep the geography selectors + URL in sync (single page) */
+      /* keep the geography selectors + URL in sync (single page) --
+       * installs the real implementation into the always-defined
+       * syncGeographyImpl declared up near applyFilters().                    */
       let syncing = false;
-      function syncGeography(distVal, ncodVal) {
+      syncGeographyImpl = function (distVal, ncodVal) {
         if (syncing) return; syncing = true;
         if (distValues.includes(distVal) || distVal === "") distSel.value = distVal;
         if (ncodValues.includes(ncodVal) || ncodVal === "") ncodSel.value = ncodVal;
         if ([...fDistrict.options].some(o => o.value === distVal) || distVal === "") fDistrict.value = distVal;
         renderGeography(distSel.value, ncodSel.value);
         syncing = false;
-      }
+      };
       distSel.addEventListener("change", () => {
         renderGeography(distSel.value, ncodSel.value);
         if ([...fDistrict.options].some(o => o.value === distSel.value) || distSel.value === "") {
@@ -1876,6 +1909,7 @@
       const urlDist = new URLSearchParams(location.search).get("district") || "";
       if (urlDist) { if ([...fDistrict.options].some(o => o.value === urlDist)) fDistrict.value = urlDist; distSel.value = distValues.includes(urlDist) ? urlDist : ""; }
       renderGeography(distSel.value, ncodSel.value);
+      } // end: MODE !== "external" (City housing by geography)
       await applyFilters();
 
       /* ===== AFFORDABILITY & FUNDING: Units by Source + Funding by Year ===== */
