@@ -234,22 +234,36 @@ export const HUD_LAYERS_BASE = [
   },
 ];
 
-/* --- Reference / boundary layers (live City services) ---------------------- */
-export const REFERENCE_LAYERS = [
+/* --- Boundary layers (live City services) -----------------------------------
+ * Council Districts + NCODs, rebuilt 2026-08-07 as standalone layers, outside
+ * the generic REFERENCE_LAYERS/makeRenderer path below. Reported issue: with
+ * the generic auto-legend widget (<arcgis-legend>), these two never produced a
+ * legend entry when toggled on, while the line-symbol reference layers
+ * (Transit Routes, BRT) did. Root cause wasn't confirmed live (view never
+ * finishes compositing in the dev sandbox to inspect the widget's output) --
+ * these are re-sourced fresh from the URLs below and given their own static
+ * legend rows (same reliable mechanism as the HUD/LIHTC legend entries) rather
+ * than depending on the auto-widget picking up MapServer-sourced polygon
+ * layers correctly. */
+export const BOUNDARY_LAYERS = [
   {
-    id: "council_districts", title: "City Council Districts", type: "feature",
+    id: "council_districts", title: "City Council Districts", kind: "boundary",
     url: "https://maps.raleighnc.gov/arcgis/rest/services/Boundaries/MapServer/2",
-    kind: "boundary", color: "#01426A", labelField: "COUNCIL_DIST", visible: true,
+    color: "#01426A", labelField: "COUNCIL_DIST", visible: true,
   },
   {
     /* The source service publishes minScale: 76800 (only draws once zoomed in
      * closer than ~1:76,800) — the app opens around 1:288,895, so checking this
      * box did nothing and looked broken. Only 26 polygons citywide, so drawing
      * them at every zoom isn't cluttered; overridden to 0 below. */
-    id: "ncods", title: "Neighborhood Conservation Overlay Districts (NCODs)", type: "feature",
+    id: "ncods", title: "Neighborhood Conservation Overlay Districts (NCODs)", kind: "boundary",
     url: "https://maps.raleighnc.gov/arcgis/rest/services/Planning/Overlays/MapServer/9",
-    kind: "boundary", color: "#189ABC", labelField: "OLAY_NAME", visible: false, minScale: 0,
+    color: "#189ABC", labelField: "OLAY_NAME", visible: false, minScale: 0,
   },
+];
+
+/* --- Reference layers (live City services) ---------------------------------- */
+export const REFERENCE_LAYERS = [
   {
     id: "transit_routes", title: "Transit Routes (GoRaleigh)", type: "feature",
     url: "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/GoRaleigh_Routes/FeatureServer/0",

@@ -272,6 +272,11 @@
           <div class="legend-item"><span style="color:#189ABC;font-size:1rem;">◆</span> Multifamily Assisted (Section 8, 202, 811)</div>
           <div class="legend-item"><span style="color:#FBAE40;font-size:1rem;">▲</span> Low Income Housing Tax Credit properties (LIHTC)</div>
           <div class="legend-item"><span style="color:#99bbff;font-size:1rem;">✕</span> HUD-Insured Multifamily</div>
+          <!-- Static rows for the two boundary layers, toggled by their own
+               checkboxes (see BOUNDARY_LAYERS in config.base.js for why these
+               don't rely on the map's auto-generated legend widget). -->
+          <div class="legend-item" id="legend-council_districts" style="margin-top:8px;"><span class="swatch" style="background:rgba(1,66,106,.12);border:1.5px solid #01426A;width:11px;height:11px;"></span> City Council Districts</div>
+          <div class="legend-item" id="legend-ncods" style="display:none;"><span class="swatch" style="background:rgba(24,154,188,.12);border:1.5px solid #189ABC;width:11px;height:11px;"></span> Neighborhood Conservation Overlay Districts (NCODs)</div>
         </div>
 
         <div class="panel-section" id="dataNotes">
@@ -516,7 +521,7 @@
     <!-- ============================== SCRIPT ============================== -->
     <script type="module">
       import {
-        MAP, HOUSING_LAYERS, HUD_LAYERS, REFERENCE_LAYERS, SUMMARY_TABLE,
+        MAP, HOUSING_LAYERS, HUD_LAYERS, REFERENCE_LAYERS, BOUNDARY_LAYERS, SUMMARY_TABLE,
         DEV_FIELDS, REHAB_FIELDS, HBA_FIELDS, OTHER_FIELDS, BRAND,
         FUNDING_SOURCES,
         MODE, UI, AUTH,
@@ -906,6 +911,41 @@
         if (rc.kind === "transit") return { title: rc.labelField ? `{${rc.labelField}}` : rc.title };
         return null;
       }
+
+      /* ---- boundary layers (Council Districts, NCODs) --------------------- *
+       * Rebuilt standalone from their source URLs (2026-08-07): the map/legend
+       * auto-widget (<arcgis-legend>, in the map's expand control) was reported
+       * to never produce an entry for these two when toggled on, while the
+       * line-symbol reference layers (Transit Routes, BRT) worked fine there.
+       * Root cause wasn't confirmed against a live render (the dev sandbox's
+       * view never finishes compositing, so the widget's actual output
+       * couldn't be inspected) -- rather than keep depending on that widget for
+       * these two, each gets its own STATIC legend row here, toggled by its
+       * checkbox, using the same mechanism already proven reliable for the
+       * City Development / HUD / LIHTC rows above. Otherwise built exactly
+       * like the generic reference layers below (same renderer/label/popup
+       * helpers), just outside that loop and into refToggles directly.        */
+      for (const bc of BOUNDARY_LAYERS) {
+        const wrap = document.createElement("div");
+        const label = document.createElement("label");
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = bc.visible;
+        const fl = new FeatureLayer({
+          url: bc.url, title: bc.title, visible: bc.visible, id: bc.id,
+          renderer: makeRenderer(bc), labelingInfo: labelInfo(bc),
+          popupEnabled: !!makePopup(bc), popupTemplate: makePopup(bc) || undefined, outFields: ["*"],
+          ...(bc.minScale != null ? { minScale: bc.minScale } : {}),
+        });
+        viewEl.map.add(fl, 0);
+        const legendRow = document.getElementById(`legend-${bc.id}`);
+        cb.addEventListener("change", () => {
+          fl.visible = cb.checked;
+          if (legendRow) legendRow.style.display = cb.checked ? "" : "none";
+        });
+        label.append(cb, document.createTextNode(" " + bc.title));
+        wrap.appendChild(label);
+        refToggles.appendChild(wrap);
+      }
+
       for (const rc of REFERENCE_LAYERS) {
         const wrap = document.createElement("div");
         const label = document.createElement("label");
