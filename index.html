@@ -894,13 +894,16 @@
         minScale: rc.kind === "transit" ? 60000 : 0,
       }] : undefined;
       function makeRenderer(rc) {
-        /* No fill, neutral outline, per 2026-08-12 request -- was a light
-         * tinted fill in `rc.color` with a colour-matched outline. Pure black
-         * at 1.5px read as too harsh; softened to the app's existing neutral
-         * gray (BRAND.bodyText, used elsewhere for body text and the HUD
-         * marker halo) at 1px. */
+        /* No fill, neutral outline. `color: null` (not a zero-alpha array) is
+         * the documented way to say "no fill" on a simple-fill symbol -- a
+         * transparent color array is a real value that some rendering paths
+         * treat differently from an actual absence of fill. Width bumped to
+         * 2px: at 1px the boundary reportedly wasn't rendering AT ALL (not
+         * just faint) even over open ground with nothing else competing for
+         * the same pixels, so erring toward "definitely visible" over
+         * "elegant" until that's confirmed fixed.                            */
         if (rc.kind === "boundary")
-          return { type: "simple", symbol: { type: "simple-fill", color: [0, 0, 0, 0], outline: { color: "#414042", width: 1 } } };
+          return { type: "simple", symbol: { type: "simple-fill", color: null, outline: { color: "#414042", width: 2 } } };
         if (rc.kind === "transit")
           return { type: "simple", symbol: { type: "simple-line", color: rc.color, width: rc.width || 2, cap: "round", join: "round" } };
         return undefined;
