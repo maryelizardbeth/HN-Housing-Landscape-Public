@@ -894,8 +894,10 @@
         minScale: rc.kind === "transit" ? 60000 : 0,
       }] : undefined;
       function makeRenderer(rc) {
+        /* Black outline, no fill, per 2026-08-12 request -- was a light tinted
+         * fill in `rc.color` with a colour-matched outline. */
         if (rc.kind === "boundary")
-          return { type: "simple", symbol: { type: "simple-fill", color: hexToRgba(rc.color, 0.07), outline: { color: rc.color, width: 1.5 } } };
+          return { type: "simple", symbol: { type: "simple-fill", color: [0, 0, 0, 0], outline: { color: "#000000", width: 1.5 } } };
         if (rc.kind === "transit")
           return { type: "simple", symbol: { type: "simple-line", color: rc.color, width: rc.width || 2, cap: "round", join: "round" } };
         return undefined;
@@ -915,9 +917,11 @@
           renderer: makeRenderer(rc), labelingInfo: labelInfo(rc),
           opacity: rc.kind === "choropleth" ? 0.72 : 1,
           popupEnabled: !!makePopup(rc), popupTemplate: makePopup(rc) || undefined, outFields: ["*"],
-          /* Only set when the config overrides it (e.g. ncods) — everything else
-           * keeps inheriting whatever scale range the source service publishes. */
+          /* Only set when the config overrides it (e.g. council_districts,
+           * ncods) — everything else keeps inheriting whatever scale range the
+           * source service publishes.                                        */
           ...(rc.minScale != null ? { minScale: rc.minScale } : {}),
+          ...(rc.maxScale != null ? { maxScale: rc.maxScale } : {}),
         });
         viewEl.map.add(fl, 0);
         cb.addEventListener("change", () => {

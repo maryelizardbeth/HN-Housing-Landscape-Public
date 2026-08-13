@@ -237,9 +237,13 @@ export const HUD_LAYERS_BASE = [
 /* --- Reference / boundary layers (live City services) ---------------------- */
 export const REFERENCE_LAYERS = [
   {
+    /* minScale/maxScale: 0 = no restriction either direction, explicit rather
+     * than relying on whatever the source service happens to publish -- per
+     * 2026-08-12 request, both boundary layers must render at any zoom. */
     id: "council_districts", title: "City Council Districts", type: "feature",
     url: "https://maps.raleighnc.gov/arcgis/rest/services/Boundaries/MapServer/2",
     kind: "boundary", color: "#01426A", labelField: "COUNCIL_DIST", visible: true,
+    minScale: 0, maxScale: 0,
   },
   {
     /* The source service publishes minScale: 76800 (only draws once zoomed in
@@ -248,7 +252,8 @@ export const REFERENCE_LAYERS = [
      * them at every zoom isn't cluttered; overridden to 0 below. */
     id: "ncods", title: "Neighborhood Conservation Overlay Districts (NCODs)", type: "feature",
     url: "https://maps.raleighnc.gov/arcgis/rest/services/Planning/Overlays/MapServer/9",
-    kind: "boundary", color: "#189ABC", labelField: "OLAY_NAME", visible: false, minScale: 0,
+    kind: "boundary", color: "#189ABC", labelField: "OLAY_NAME", visible: false,
+    minScale: 0, maxScale: 0,
   },
   {
     id: "transit_routes", title: "Transit Routes (GoRaleigh)", type: "feature",
