@@ -570,8 +570,9 @@
       // a section nobody will see.
       if (MODE === "external") document.getElementById("geographySection")?.remove();
 
-      const [FeatureLayer, VectorTileLayer, Basemap] = await Promise.all([
+      const [FeatureLayer, GeoJSONLayer, VectorTileLayer, Basemap] = await Promise.all([
         $arcgis.import("@arcgis/core/layers/FeatureLayer.js"),
+        $arcgis.import("@arcgis/core/layers/GeoJSONLayer.js"),
         $arcgis.import("@arcgis/core/layers/VectorTileLayer.js"),
         $arcgis.import("@arcgis/core/Basemap.js"),
       ]);
@@ -918,11 +919,23 @@
         const wrap = document.createElement("div");
         const label = document.createElement("label");
         const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = rc.visible;
-        const fl = new FeatureLayer({
-          url: rc.url, title: rc.title, visible: rc.visible, id: rc.id,
+        /* `localData` layers ship as GeoJSON in this repo instead of being
+         * fetched from their source service. Council Districts and NCODs come
+         * from maps.raleighnc.gov, which is blocked at the browser level
+         * (ERR_BLOCKED_BY_CLIENT) for at least some clients when the page is
+         * served from the public GitHub Pages domain -- both layers silently
+         * failed to load on the live site while working fine from localhost.
+         * See refresh_boundary_data.py for the diagnosis and how to
+         * regenerate the files.                                              */
+        const Ctor = rc.localData ? GeoJSONLayer : FeatureLayer;
+        const fl = new Ctor({
+          url: rc.localData || rc.url, title: rc.title, visible: rc.visible, id: rc.id,
           renderer: makeRenderer(rc), labelingInfo: labelInfo(rc),
           opacity: rc.kind === "choropleth" ? 0.72 : 1,
-          popupEnabled: !!makePopup(rc), popupTemplate: makePopup(rc) || undefined, outFields: ["*"],
+          popupEnabled: !!makePopup(rc), popupTemplate: makePopup(rc) || undefined,
+          /* GeoJSONLayer infers its fields from the file and rejects outFields
+           * ["*"], so it is only set for service-backed layers.              */
+          ...(rc.localData ? {} : { outFields: ["*"] }),
           /* Only set when the config overrides it (e.g. council_districts,
            * ncods) — everything else keeps inheriting whatever scale range the
            * source service publishes.                                        */

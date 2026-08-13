@@ -237,11 +237,19 @@ export const HUD_LAYERS_BASE = [
 /* --- Reference / boundary layers (live City services) ---------------------- */
 export const REFERENCE_LAYERS = [
   {
-    /* minScale/maxScale: 0 = no restriction either direction, explicit rather
+    /* `localData` -> shipped as GeoJSON in this repo rather than fetched from
+     * `url`. maps.raleighnc.gov is blocked at the browser level for at least
+     * some clients when the page is served from the public GitHub Pages
+     * domain, so both boundary layers silently failed to load on the live site
+     * while working from localhost. `url` is kept as the provenance record and
+     * is what refresh_boundary_data.py re-pulls from.
+     *
+     * minScale/maxScale: 0 = no restriction either direction, explicit rather
      * than relying on whatever the source service happens to publish -- per
      * 2026-08-12 request, both boundary layers must render at any zoom. */
     id: "council_districts", title: "City Council Districts", type: "feature",
     url: "https://maps.raleighnc.gov/arcgis/rest/services/Boundaries/MapServer/2",
+    localData: "./council_districts.geojson",
     kind: "boundary", color: "#01426A", labelField: "COUNCIL_DIST", visible: true,
     minScale: 0, maxScale: 0,
   },
@@ -252,6 +260,7 @@ export const REFERENCE_LAYERS = [
      * them at every zoom isn't cluttered; overridden to 0 below. */
     id: "ncods", title: "Neighborhood Conservation Overlay Districts (NCODs)", type: "feature",
     url: "https://maps.raleighnc.gov/arcgis/rest/services/Planning/Overlays/MapServer/9",
+    localData: "./ncods.geojson",
     kind: "boundary", color: "#189ABC", labelField: "OLAY_NAME", visible: false,
     minScale: 0, maxScale: 0,
   },
