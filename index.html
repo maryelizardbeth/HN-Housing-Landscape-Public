@@ -188,21 +188,6 @@
             <div class="note" style="margin-top:6px;">This is only reflective of funding sources for the year 2025-2026. We are working on updating past years in future iterations of the dashboard.</div>
           </div>
           <div class="field">
-            <label for="loanMinN">City funding — City of Raleigh loan ($)</label>
-            <div class="range-wrap">
-              <div class="range-track"></div>
-              <div class="range-fill" id="loanFill"></div>
-              <input type="range" id="loanMinR" min="0" max="100" step="1" value="0" aria-label="Minimum loan amount" />
-              <input type="range" id="loanMaxR" min="0" max="100" step="1" value="100" aria-label="Maximum loan amount" />
-            </div>
-            <div class="range-inputs">
-              <input type="number" id="loanMinN" min="0" placeholder="min" />
-              <span>to</span>
-              <input type="number" id="loanMaxN" min="0" placeholder="max" />
-            </div>
-            <div class="range-label" id="loanLabel"></div>
-          </div>
-          <div class="field">
             <label for="unitMinN">Total units per project</label>
             <div class="range-wrap">
               <div class="range-track"></div>
@@ -454,26 +439,11 @@
         </div>
       </div>
 
-      <div class="card wide" style="margin-top:12px;">
-        <div class="table-scroll"><table class="data-table" id="bond2020Table"></table></div>
-        <div class="note" style="margin-top:10px;">Units and totals from the 2020 Bond Tracker table.</div>
-      </div>
-
-      <!-- Bond visualizations: keep stacked units chart and pivot table only (no CSV exports) -->
-      <div class="card-grid">
-        <div class="card bond wide">
-          <h4>2020 Bonds Units by fiscal year (by 2020 Bond Category) <span class="status-badge">all statuses</span></h4>
-          <div class="chart-box"><canvas id="bondStackedUnits" style="height:240px;"></canvas></div>
-        </div>
-        <div class="card bond wide">
-          <h4>2020 Bond Tracker Pivot <span class="status-badge">all statuses</span></h4>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-            <label for="pivotMetric">Metric</label>
-            <select id="pivotMetric" style="margin-left:6px;padding:6px;font:inherit;"><option value="Total_Units">Units</option><option value="Funds_Committed">Funds committed</option></select>
-          </div>
-          <div class="table-scroll"><table class="data-table" id="bondPivotTable"></table></div>
-        </div>
-      </div>
+      <!-- Removed 2026-08-17: the fiscal-year x category pivot table
+           (bond2020Table), the "2020 Bonds Units by fiscal year" stacked chart
+           (bondStackedUnits), and the "2020 Bond Tracker Pivot" + its Metric
+           selector (bondPivotTable). The committed-vs-available gauge and
+           Committed-funding-by-category chart above are the ones kept. -->
 
       <h2 style="color:var(--raleigh-green);font-size:1.15rem;margin:26px 0 4px;">Development projects <span id="bondDevScope" class="status-badge status-badge-live">complete &amp; pipeline</span></h2>
       <div><span class="src-badge">Source: 2020 Bond Tracker (f_2020_Bond_Tracker_Housing_Development_2020) — PPP, LIHTC Gap Financing and Site Acquisition only</span></div>
@@ -487,18 +457,12 @@
           <div class="kpi-row" id="bondDevKpis" style="margin-top:6px;"></div>
         </div>
       </div>
+      <!-- Removed 2026-08-17: "units by status" (pipeline v complete) and
+           "units (cumulative)". Category is the one chart kept here. -->
       <div class="card-grid">
         <div class="card">
           <h4>2020 Bond housing development units by category</h4>
           <div class="chart-box"><canvas id="bondDevByCategory"></canvas></div>
-        </div>
-        <div class="card">
-          <h4>2020 Bond housing development units by status</h4>
-          <div class="chart-box"><canvas id="bondDevByStatus"></canvas></div>
-        </div>
-        <div class="card">
-          <h4>2020 Bond housing development units (cumulative)</h4>
-          <div class="chart-box"><canvas id="bondDevCumulative"></canvas></div>
         </div>
       </div>
       <div class="card-grid">
@@ -1109,55 +1073,9 @@
         o.textContent = v === "None" ? "None (outside any NCOD)" : v; fNcod.appendChild(o);
       });
 
-      /* ---- City-funding slider (City of Raleigh loan $) ------------------ */
-      const loanMinR = document.getElementById("loanMinR"), loanMaxR = document.getElementById("loanMaxR");
-      const loanMinN = document.getElementById("loanMinN"), loanMaxN = document.getElementById("loanMaxN");
-      const loanFill = document.getElementById("loanFill"), loanLabel = document.getElementById("loanLabel");
-      async function loanBound() {
-        let mx = 0;
-        for (const id of ["housing_development", "homeowner_rehabs", "homebuyer_assistance"]) {
-          if (!mappedIds.has(id)) continue;   // slider range reflects mapped data only
-          const layer = housing[id];
-          try {
-            const q = layer.createQuery(); q.where = "1=1"; q.returnGeometry = false;
-            q.outStatistics = [{ statisticType: "max", onStatisticField: FILTERABLE[id].loan, outStatisticFieldName: "mx" }];
-            const r = await layer.queryFeatures(q); const v = r.features[0] && r.features[0].attributes.mx;
-            if (v != null) mx = Math.max(mx, v);
-          } catch (e) {}
-        }
-        return Math.max(1000, Math.ceil(mx / 10000) * 10000);
-      }
-      const LOAN_MAX = await loanBound(), LOAN_STEP = 1000;
-      [loanMinR, loanMaxR].forEach(s => { s.min = 0; s.max = LOAN_MAX; s.step = LOAN_STEP; });
-      loanMinR.value = 0; loanMaxR.value = LOAN_MAX; loanMinN.max = LOAN_MAX; loanMaxN.max = LOAN_MAX;
-      const loanIsActive = () => (+loanMinR.value > 0) || (+loanMaxR.value < LOAN_MAX);
-      function updateLoanUI() {
-        const lo = +loanMinR.value, hi = +loanMaxR.value;
-        loanFill.style.left = (lo / LOAN_MAX * 100) + "%";
-        loanFill.style.width = ((hi - lo) / LOAN_MAX * 100) + "%";
-        loanMinN.value = lo; loanMaxN.value = hi;
-        loanLabel.textContent = loanIsActive() ? `${fmtMoney(lo)} – ${fmtMoney(hi)}` : `Any amount (up to ${fmtMoney(LOAN_MAX)})`;
-      }
-      function clampFromRange(which) {
-        let lo = +loanMinR.value, hi = +loanMaxR.value;
-        if (lo > hi) { if (which === "min") loanMaxR.value = lo; else loanMinR.value = hi; }
-        updateLoanUI();
-      }
-      function applyFromNumbers() {
-        let lo = loanMinN.value === "" ? 0 : +loanMinN.value;
-        let hi = loanMaxN.value === "" ? LOAN_MAX : +loanMaxN.value;
-        if (isNaN(lo)) lo = 0; if (isNaN(hi)) hi = LOAN_MAX;
-        lo = Math.max(0, Math.min(lo, LOAN_MAX)); hi = Math.max(0, Math.min(hi, LOAN_MAX));
-        if (lo > hi) { const t = lo; lo = hi; hi = t; }
-        loanMinR.value = lo; loanMaxR.value = hi; updateLoanUI();
-      }
-      loanMinR.addEventListener("input", () => clampFromRange("min"));
-      loanMaxR.addEventListener("input", () => clampFromRange("max"));
-      loanMinR.addEventListener("change", applyFilters);
-      loanMaxR.addEventListener("change", applyFilters);
-      loanMinN.addEventListener("change", () => { applyFromNumbers(); applyFilters(); });
-      loanMaxN.addEventListener("change", () => { applyFromNumbers(); applyFilters(); });
-      updateLoanUI();
+      /* The City-of-Raleigh-loan ($) range filter was removed 2026-08-17 per
+       * request. FILTERABLE[].loan is kept in the field map -- it is still the
+       * loan-amount field name used elsewhere -- but nothing filters on it. */
 
       /* ---- Units-per-project slider (Total_Units, all 4 layers) ---------- */
       const unitMinR = document.getElementById("unitMinR"), unitMaxR = document.getElementById("unitMaxR");
@@ -1219,7 +1137,6 @@
       const sqlStr = (v) => "'" + String(v).replace(/'/g, "''") + "'";
       async function applyFilters() {
         const eq = { year: fYear.value, status: fStatus.value, devType: fDevType.value, district: fDistrict.value, ncod: fNcod.value };
-        const lo = +loanMinR.value, hi = +loanMaxR.value, loanActive = loanIsActive();
         const ulo = +unitMinR.value, uhi = +unitMaxR.value, unitActive = unitIsActive();
         const amiChecked = fAmi.filter(cb => cb.checked).map(cb => +cb.value);
         const fundChecked = fFunding.filter(cb => cb.checked).map(cb => FUNDING_SOURCES[+cb.value]);
@@ -1245,10 +1162,6 @@
               });
               clauses.push("(" + parts.join(fundAll ? " AND " : " OR ") + ")");
             }
-          }
-          if (eligible && loanActive) {
-            if (!map.loan) eligible = false;
-            else clauses.push(`${map.loan} >= ${lo} AND ${map.loan} <= ${hi}`);
           }
           if (eligible && unitActive) {
             if (!map.units) eligible = false;
@@ -1289,7 +1202,6 @@
         fAmi.forEach(cb => (cb.checked = false));
         fFunding.forEach(cb => (cb.checked = false));
         setFundMode("any");
-        loanMinR.value = 0; loanMaxR.value = LOAN_MAX; updateLoanUI();
         unitMinR.value = 0; unitMaxR.value = UNIT_MAX; updateUnitUI();
         applyFilters();
       });
@@ -1388,10 +1300,6 @@
         const bondJson = await (await fetch(bondUrl)).json();
         const bondRows = bondJson.features.map(f => f.attributes);
 
-        // Years (rows) and categories (columns)
-        const years = Array.from(new Set(bondRows.map(r => r.End_Year).filter(v => v !== null))).sort((a, b) => a - b);
-        const yearLabels = years.map(y => fyFull(y));
-
         // Allowed categories and normalization / mapping helper to avoid "Not specified" and to normalize variants
         const ALLOWED_CATS = ["Home Repair","Public Private Partnerships","LIHTC Gap Financing","Site Acquisition","Homebuyer Assistance"];
         const normalize = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -1408,49 +1316,8 @@
         // derive categories present in the data but limited to the allowed list, in the specified order
         const categories = ALLOWED_CATS.filter(ac => bondRows.some(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === ac));
 
-        /* Header: each category spans 2 cols — Units / Funds committed. "Funds
-         * available" is deliberately not in this table; it is a fixed allocation
-         * per category rather than production, and repeating it across every
-         * category doubled the table's width. The allocation still drives the
-         * committed-vs-available meter below.                                   */
-        const headerTop = `<thead><tr><th rowspan="2">Fiscal year</th>${categories.map(c => `<th colspan="2">${c}</th>`).join('')}<th colspan="2">Totals</th></tr>`;
-        const headerBottom = `<tr>${categories.map(() => `<th>Units</th><th>Funds committed</th>`).join('')}<th>Units</th><th>Funds committed</th></tr></thead>`;
-
-        let rowsHtml = '<tbody>';
-        years.forEach((y, yi) => {
-          let row = `<tr><td>${yearLabels[yi]}</td>`;
-          let yearUnitsTotal = 0, yearFundsCommittedTotal = 0;
-          categories.forEach(cat => {
-            const matches = bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === cat && r.End_Year === y);
-            const units = matches.reduce((s, r) => s + (Number(r.Total_Units) || 0), 0);
-            const fundsCommitted = matches.reduce((s, r) => s + (Number(r.Funds_Committed) || 0), 0);
-            yearUnitsTotal += units; yearFundsCommittedTotal += fundsCommitted;
-            /* fmtMoney rounds to whole dollars — some source rows carry cents and
-             * others don't, so raw toLocaleString mixed "$3,855,000" with
-             * "$1,901,351.5" in the same row. Cents are noise at this scale.    */
-            row += `<td>${units.toLocaleString()}</td><td>${fmtMoney(fundsCommitted)}</td>`;
-          });
-          row += `<td class="total-col">${yearUnitsTotal.toLocaleString()}</td><td class="total-col">${fmtMoney(yearFundsCommittedTotal)}</td></tr>`;
-          rowsHtml += row;
-        });
-
-        // Grand totals row (all years)
-        const grandUnits = bondRows.reduce((s, r) => s + (Number(r.Total_Units) || 0), 0);
         const grandFundsAvailable = bondRows.reduce((s, r) => s + (Number(r.Funds_Available) || 0), 0);
         const grandFundsCommitted = bondRows.reduce((s, r) => s + (Number(r.Funds_Committed) || 0), 0);
-
-        rowsHtml += `<tr class="total-row"><td>Total (all years)</td>`;
-        // For grand totals per category across all years
-        categories.forEach(cat => {
-          const matches = bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === cat);
-          const units = matches.reduce((s, r) => s + (Number(r.Total_Units) || 0), 0);
-          const fundsCommitted = matches.reduce((s, r) => s + (Number(r.Funds_Committed) || 0), 0);
-          rowsHtml += `<td>${units.toLocaleString()}</td><td>${fmtMoney(fundsCommitted)}</td>`;
-        });
-        rowsHtml += `<td class="total-col">${grandUnits.toLocaleString()}</td><td class="total-col">${fmtMoney(grandFundsCommitted)}</td></tr>`;
-
-        rowsHtml += '</tbody>';
-        document.getElementById('bond2020Table').innerHTML = headerTop + headerBottom + rowsHtml;
 
         /* Funding meter: total committed vs. available (mirrors the removed 5,700 goal gauge) */
         const bondPctCommitted = grandFundsAvailable > 0 ? (grandFundsCommitted / grandFundsAvailable * 100) : 0;
@@ -1476,57 +1343,13 @@
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
         });
 
-        /* -------------------------- Build visualizations ------------------------- */
-        // Prepare matrices
-        const catList = categories; // preserved from above
-        const yearList = years;
-        const unitsMat = yearList.map(y => catList.map(c => {
-          return bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === c && r.End_Year === y)
-                         .reduce((s, r) => s + (Number(r.Total_Units) || 0), 0);
-        }));
-        const fundsCommittedMat = yearList.map(y => catList.map(c => {
-          return bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === c && r.End_Year === y)
-                         .reduce((s, r) => s + (Number(r.Funds_Committed) || 0), 0);
-        }));
-
-        // Color palette (repeat if needed)
-        const palette = [BRAND.raleighGreen, BRAND.leafGreen, BRAND.chartreuse, BRAND.teal, BRAND.midGreen, BRAND.amber, BRAND.rust, BRAND.navy];
-        const catColors = catList.map((c, i) => palette[i % palette.length]);
-
-        // 1) Stacked bar (units)
-        const stackedDatasets = catList.map((c, i) => ({ label: c, data: yearList.map((y, yi) => unitsMat[yi][i]), backgroundColor: catColors[i] }));
-        if (window.bondStackedChart) window.bondStackedChart.destroy();
-        window.bondStackedChart = new Chart(document.getElementById('bondStackedUnits'), {
-          type: 'bar', data: { labels: yearList.map(y => fyFull(y)), datasets: stackedDatasets },
-          options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'Units' } } }, plugins: { legend: { position: 'bottom' } } },
-        });
-
-        // 2) (removed) Grouped bars, small multiples, and heatmap — not used in this configuration
-
-        // 5) Pivot table: years rows, categories columns for chosen metric
-        function renderPivot(metricField) {
-          const header = `<thead><tr><th>Fiscal year</th>${catList.map(c => `<th>${c}</th>`).join('')}<th>Total</th></tr></thead>`;
-          let body = '<tbody>';
-          yearList.forEach((y, yi) => {
-            let row = `<tr><td>${fyFull(y)}</td>`;
-            let yearTotal = 0;
-            catList.forEach((c, ci) => {
-              const val = bondRows.filter(r => mapCategory(r.Bond_2020_Category || r.Funding_Source) === c && r.End_Year === y)
-                                  .reduce((s, r) => s + (Number(r[metricField]) || 0), 0);
-              yearTotal += val;
-              row += `<td>${metricField === 'Total_Units' ? val.toLocaleString() : '$' + val.toLocaleString()}</td>`;
-            });
-            row += `<td class="total-col">${metricField === 'Total_Units' ? yearTotal.toLocaleString() : '$' + yearTotal.toLocaleString()}</td></tr>`;
-            body += row;
-          });
-          body += '</tbody>';
-          document.getElementById('bondPivotTable').innerHTML = header + body;
-        }
-        const pivotSel = document.getElementById('pivotMetric'); pivotSel.addEventListener('change', (e) => renderPivot(e.target.value));
-        renderPivot('Total_Units');
+        /* Removed 2026-08-17: the stacked units-by-fiscal-year chart and the
+         * Bond Tracker Pivot (plus the per-year/per-category matrices that fed
+         * only those two). The gauge and category pie above are what remain
+         * from this data pull.                                                */
 
       } catch (e) {
-        document.getElementById('bond2020Table').innerHTML = '<tbody><tr><td>Unable to load 2020 Bond totals.</td></tr></tbody>';
+        document.getElementById('bondFundingKpis').innerHTML = '<div class="note">Unable to load 2020 Bond totals.</div>';
         console.error('Bond table load error', e);
       }
 
@@ -1631,21 +1454,9 @@
         // Collapse detailed construction statuses down to Complete / Pipeline.
         const collapseStatus = s => (String(s || '').trim().toLowerCase() === 'complete' ? 'Complete' : 'Pipeline');
 
-        /* Units by status is the chart that EXPLAINS the filter, so it is always
-         * built from the full set — filtering it would leave a single-slice pie. */
-        const byStatus = {};
-        devRows.forEach(r => {
-          const s = collapseStatus(pick(r, statusFields));
-          const u = Number(pick(r, unitFields)) || 0;
-          byStatus[s] = (byStatus[s] || 0) + u;
-        });
-        const statusLabels = Object.keys(byStatus).sort();
-        const statusData = statusLabels.map(l => byStatus[l]);
-        if (window.bondDevStatusChart) window.bondDevStatusChart.destroy();
-        window.bondDevStatusChart = new Chart(document.getElementById('bondDevByStatus'), {
-          type: 'pie', data: { labels: statusLabels, datasets: [{ data: statusData, backgroundColor: statusLabels.map((_,i) => palette[(i+2) % palette.length]) }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
-        });
+        /* The "units by status" pie was removed 2026-08-17. collapseStatus is
+         * still used below -- the section-level Complete/Pipeline filter it
+         * powers was kept. */
 
         const allRows = devRows.slice().sort((a,b) => (''+pick(b, fyFundedFields)).localeCompare(''+pick(a, fyFundedFields)));
 
@@ -1653,13 +1464,12 @@
         function renderBondDev(statusFilter) {
           const rows = statusFilter ? devRows.filter(r => collapseStatus(pick(r, statusFields)) === statusFilter) : devRows;
 
-          // summary KPIs
+          // summary KPIs — Units tile removed 2026-08-17; project count and
+          // funds committed only.
           const totalProjects = rows.length;
-          const totalUnits = rows.reduce((s, r) => s + (Number(pick(r, unitFields)) || 0), 0);
           const totalFunds = rows.reduce((s, r) => s + (Number(pick(r, fundsFields)) || 0), 0);
           document.getElementById('bondDevKpis').innerHTML = `
             <div class="kpi"><div class="num">${totalProjects.toLocaleString()}</div><div class="lbl">Projects</div></div>
-            <div class="kpi"><div class="num">${totalUnits.toLocaleString()}</div><div class="lbl">Units</div></div>
             <div class="kpi"><div class="num">${fmtMoney(totalFunds)}</div><div class="lbl">Funds Committed</div></div>`;
 
           const scopeLabel = statusFilter === 'Complete' ? 'complete only'
@@ -1684,26 +1494,7 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
           });
 
-          // Cumulative units by fund year
-          const byYearSum = {};
-          rows.forEach(r => {
-            const y = (pick(r, fundYearFields) || '').toString().trim();
-            if (y) {
-              const u = Number(pick(r, unitFields)) || 0;
-              byYearSum[y] = (byYearSum[y] || 0) + u;
-            }
-          });
-          const yearLabels = Object.keys(byYearSum).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
-          let cumulative = 0;
-          const cumulativeData = yearLabels.map(y => { cumulative += byYearSum[y]; return cumulative; });
-          if (window.bondDevCumulativeChart) window.bondDevCumulativeChart.destroy();
-          window.bondDevCumulativeChart = new Chart(document.getElementById('bondDevCumulative'), {
-            /* Fund Year is stored as the end year (2023 = the 2022-23 fiscal
-             * year), so it is displayed in the same FY 22-23 form as the rest
-             * of the section rather than as a bare calendar year.              */
-            type: 'line', data: { labels: yearLabels.map(y => fyFull(y)), datasets: [{ label: 'Cumulative Units', data: cumulativeData, backgroundColor: 'transparent', borderColor: BRAND.raleighGreen, borderWidth: 2, pointRadius: 4, pointBackgroundColor: BRAND.raleighGreen, tension: 0.3, fill: false }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Fund year' } }, y: { beginAtZero: true, title: { display: true, text: 'Units' } } } },
-          });
+          // The cumulative-units-by-fund-year chart was removed 2026-08-17.
 
           renderBondDevList(statusFilter);
         }
@@ -1711,18 +1502,16 @@
         // Scrollable project listing — exclude monetary/funding amount fields
         function renderBondDevList(statusFilter) {
           const rows = statusFilter ? allRows.filter(r => collapseStatus(pick(r, statusFields)) === statusFilter) : allRows;
-          let tbl = `<thead><tr><th>Project</th><th>Category</th><th>Fiscal Year Funded</th><th>Status</th><th>Total Units</th></tr></thead><tbody>`;
-          let unitTotal = 0;
+          // Total Units column removed 2026-08-17.
+          let tbl = `<thead><tr><th>Project</th><th>Category</th><th>Fiscal Year Funded</th><th>Status</th></tr></thead><tbody>`;
           rows.forEach(r => {
             const proj = pick(r, nameFields) || '—';
             const bc = mapCategoryDev(pick(r, catFields));
             const fy = pick(r, fyFundedFields) || '';
             const st = collapseStatus(pick(r, statusFields));
-            const u = Number(pick(r, unitFields)) || 0;
-            unitTotal += u;
-            tbl += `<tr><td>${proj}</td><td>${bc}</td><td>${fy}</td><td>${st}</td><td>${u.toLocaleString()}</td></tr>`;
+            tbl += `<tr><td>${proj}</td><td>${bc}</td><td>${fy}</td><td>${st}</td></tr>`;
           });
-          tbl += `<tr class="total-row"><td colspan="4">Total (${rows.length.toLocaleString()} project${rows.length === 1 ? '' : 's'})</td><td class="total-col">${unitTotal.toLocaleString()}</td></tr>`;
+          tbl += `<tr class="total-row"><td colspan="4">Total (${rows.length.toLocaleString()} project${rows.length === 1 ? '' : 's'})</td></tr>`;
           tbl += '</tbody>';
           document.getElementById('bondDevList').innerHTML = tbl;
         }
